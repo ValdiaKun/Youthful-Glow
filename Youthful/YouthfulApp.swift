@@ -43,6 +43,7 @@ struct YouthfulApp: App {
             ZStack {
                 ContentView().preferredColorScheme(.light).background(TabHapticInstaller())
                 UnifiedFeatureLauncher()
+                    .zIndex(9999)
             }
         }
         .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self, ScheduledGoal.self, ProductIntelligence.self, SmartReminder.self, PhotoNote.self])
@@ -63,6 +64,7 @@ private struct UnifiedFeatureLauncher: View {
     private let itemSpacing: CGFloat = 9
     private let edgePadding: CGFloat = 18
     private let defaultBottomOffset: CGFloat = 105
+    private let dragThreshold: CGFloat = 8
     private enum Destination: String, Identifiable { case smartFeatures, progress, scheduledGoals; var id: String { rawValue } }
 
     var body: some View {
@@ -70,9 +72,9 @@ private struct UnifiedFeatureLauncher: View {
             let safe = proxy.safeAreaInsets
             let bounds = proxy.size
             let defaultPosition = CGPoint(x: bounds.width - edgePadding - buttonSize / 2, y: bounds.height - safe.bottom - defaultBottomOffset)
+
             dock
                 .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
-                .contentShape(Circle().size(width: buttonSize + 28, height: buttonSize + 28))
                 .onAppear {
                     if !hasStoredPosition {
                         position = defaultPosition
@@ -103,35 +105,44 @@ private struct UnifiedFeatureLauncher: View {
             }
             .frame(width: buttonSize, height: buttonSize)
             .shadow(color: .black.opacity(0.18), radius: 15, y: 6)
-            .contentShape(Circle())
-            .gesture(
+            .contentShape(Rectangle())
+            .allowsHitTesting(true)
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)
                     .onChanged { value in
                         if !hasStoredPosition {
                             hasStoredPosition = true
-                            position = CGPoint(x: value.startLocation.x, y: value.startLocation.y)
+                            position = CGPoint(x: value.location.x, y: value.location.y)
                             dragStartPosition = position
                         }
-                        if !didDrag && (abs(value.translation.width) > 6 || abs(value.translation.height) > 6) {
+
+                        let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
+                        if moved && !didDrag {
                             didDrag = true
                             CoachHaptics.impact()
                         }
-                        guard didDrag else { return }
-                        position = CGPoint(x: dragStartPosition.x + value.translation.width,
-                                           y: dragStartPosition.y + value.translation.height)
+
+                        if didDrag {
+                            position = CGPoint(
+                                x: dragStartPosition.x + value.translation.width,
+                                y: dragStartPosition.y + value.translation.height
+                            )
+                        }
                     }
                     .onEnded { value in
-                        let moved = abs(value.translation.width) > 6 || abs(value.translation.height) > 6
-                        if !moved {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
-                            CoachHaptics.selection()
-                        } else {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
-                                position = clamped(position, in: UIScreen.main.bounds.size, safe: EdgeInsets())
-                            }
+                        let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
+
+                        if moved {
+                            position = clamped(position, in: UIScreen.main.bounds.size, safe: EdgeInsets())
                             dragStartPosition = position
                             CoachHaptics.selection()
+                        } else {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                showing.toggle()
+                            }
+                            CoachHaptics.selection()
                         }
+
                         didDrag = false
                     }
             )
@@ -140,7 +151,6 @@ private struct UnifiedFeatureLauncher: View {
         }
         .frame(width: buttonSize, height: buttonSize, alignment: .bottomTrailing)
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
-        .onAppear { dragStartPosition = position }
     }
 
     private var menu: some View {
