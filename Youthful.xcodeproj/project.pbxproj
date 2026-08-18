@@ -15,6 +15,7 @@
         A00000000000000000000006 /* AppearanceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* AppearanceCoach.swift */; };
         A00000000000000000000007 /* SmartFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* SmartFeatures.swift */; };
         A00000000000000000000008 /* V2FeatureLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* V2FeatureLauncher.swift */; };
+        A00000000000000000000009 /* ProgressPhotoCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* ProgressPhotoCapture.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
         A00000000000000000000016 /* AppearanceCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceCoach.swift; sourceTree = "<group>"; };
         A00000000000000000000017 /* SmartFeatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartFeatures.swift; sourceTree = "<group>"; };
         A00000000000000000000018 /* V2FeatureLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2FeatureLauncher.swift; sourceTree = "<group>"; };
+        A00000000000000000000019 /* ProgressPhotoCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPhotoCapture.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +54,7 @@
 				A00000000000000000000016 /* AppearanceCoach.swift */,
                 A00000000000000000000017 /* SmartFeatures.swift */,
                 A00000000000000000000018 /* V2FeatureLauncher.swift */,
+                A00000000000000000000019 /* ProgressPhotoCapture.swift */,
 			);
 			path = Youthful;
 			sourceTree = "<group>";
@@ -130,6 +133,7 @@
 				A00000000000000000000006 /* AppearanceCoach.swift in Sources */,
                 A00000000000000000000007 /* SmartFeatures.swift in Sources */,
                 A00000000000000000000008 /* V2FeatureLauncher.swift in Sources */,
+                A00000000000000000000009 /* ProgressPhotoCapture.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
