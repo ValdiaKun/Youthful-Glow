@@ -1,6 +1,103 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import UIKit
+
+// MARK: - Global haptics
+
+enum HapticIntensity: String, CaseIterable, Identifiable {
+    case off = "Off"
+    case light = "Light"
+    case medium = "Medium"
+    case strong = "Strong"
+
+    var id: String { rawValue }
+    var multiplier: CGFloat {
+        switch self {
+        case .off: return 0
+        case .light: return 0.35
+        case .medium: return 0.65
+        case .strong: return 1.0
+        }
+    }
+}
+
+enum CoachHaptics {
+    private static let key = "globalHapticIntensity"
+
+    static var intensity: HapticIntensity {
+        HapticIntensity(rawValue: UserDefaults.standard.string(forKey: key) ?? HapticIntensity.medium.rawValue) ?? .medium
+    }
+
+    static func setIntensity(_ value: HapticIntensity) {
+        UserDefaults.standard.set(value.rawValue, forKey: key)
+    }
+
+    static func selection() {
+        guard intensity != .off else { return }
+        let generator = UISelectionFeedbackGenerator()
+        generator.prepare()
+        generator.selectionChanged()
+    }
+
+    static func impact() {
+        guard intensity != .off else { return }
+        let generator = UIImpactFeedbackGenerator(style: impactStyle)
+        generator.prepare()
+        generator.impactOccurred(intensity: intensity.multiplier)
+    }
+
+    static func success() {
+        guard intensity != .off else { return }
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        generator.notificationOccurred(.success)
+    }
+
+    private static var impactStyle: UIImpactFeedbackGenerator.FeedbackStyle {
+        switch intensity {
+        case .off, .light: return .light
+        case .medium: return .medium
+        case .strong: return .heavy
+        }
+    }
+}
+
+// Installs haptic feedback on the native tab bar without replacing SwiftUI's TabView UI.
+private struct TabHapticInstaller: UIViewControllerRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let controller = UIViewController()
+        controller.view.backgroundColor = .clear
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        DispatchQueue.main.async {
+            guard let tabBarController = uiViewController.findTabBarController() else { return }
+            if tabBarController.delegate !== context.coordinator {
+                tabBarController.delegate = context.coordinator
+            }
+        }
+    }
+
+    final class Coordinator: NSObject, UITabBarControllerDelegate {
+        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
+            CoachHaptics.selection()
+        }
+    }
+}
+
+private extension UIViewController {
+    func findTabBarController() -> UITabBarController? {
+        if let tab = tabBarController { return tab }
+        for child in children {
+            if let tab = child.findTabBarController() { return tab }
+        }
+        return parent?.findTabBarController()
+    }
+}
 
 @main
 struct YouthfulApp: App {
@@ -13,6 +110,7 @@ struct YouthfulApp: App {
             ZStack(alignment: .bottomTrailing) {
                 ContentView()
                     .preferredColorScheme(.light)
+                    .background(TabHapticInstaller())
                 ScheduledGoalsLauncher()
             }
         }
