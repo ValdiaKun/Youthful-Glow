@@ -247,14 +247,3 @@ extension View {
         modifier(AppearanceCoachEntryModifier())
     }
 }
-
-enum CoachHaptics {
-    static func selection() {
-        UISelectionFeedbackGenerator().selectionChanged()
-    }
-
-    static func impact() {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
-    }
-}
