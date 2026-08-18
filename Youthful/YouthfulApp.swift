@@ -65,6 +65,9 @@ private struct UnifiedFeatureLauncher: View {
     private let edgePadding: CGFloat = 18
     private let defaultBottomOffset: CGFloat = 105
     private let dragThreshold: CGFloat = 8
+    private let menuGap: CGFloat = 12
+    private let menuWidth: CGFloat = 210
+    private let edgeActivation: CGFloat = 105
     private enum Destination: String, Identifiable { case smartFeatures, progress, scheduledGoals; var id: String { rawValue } }
 
     var body: some View {
@@ -72,18 +75,18 @@ private struct UnifiedFeatureLauncher: View {
             let safe = proxy.safeAreaInsets
             let bounds = proxy.size
             let defaultPosition = CGPoint(x: bounds.width - edgePadding - buttonSize / 2, y: bounds.height - safe.bottom - defaultBottomOffset)
+            let current = launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe)
 
             ZStack {
                 if showing {
                     menu
-                        .position(x: launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe).x,
-                                  y: launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe).y - buttonSize / 2 - 12 - menuHeight / 2)
+                        .position(menuCenter(for: current, in: bounds, safe: safe))
                         .zIndex(1)
-                        .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
+                        .transition(.scale(scale: 0.88, anchor: menuAnchor(for: current, in: bounds)).combined(with: .opacity))
                 }
 
                 dock
-                    .position(launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe))
+                    .position(current)
                     .zIndex(2)
                     .onAppear {
                         if !hasStoredPosition {
@@ -103,6 +106,42 @@ private struct UnifiedFeatureLauncher: View {
 
     private func launcherPoint(defaultPosition: CGPoint, bounds: CGSize, safe: EdgeInsets) -> CGPoint {
         hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition
+    }
+
+    private func menuCenter(for point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
+        let isLeft = point.x <= edgeActivation
+        let isRight = point.x >= size.width - edgeActivation
+        let isTop = point.y <= safe.top + edgeActivation
+        let isBottom = point.y >= size.height - safe.bottom - edgeActivation
+
+        // Horizontally reverse the menu when the button is near the left edge.
+        let proposedX: CGFloat = isLeft
+            ? point.x + buttonSize / 2 + menuGap + menuWidth / 2
+            : isRight
+                ? point.x - buttonSize / 2 - menuGap - menuWidth / 2
+                : point.x
+
+        // Vertically reverse the menu when the button is near the top.
+        // At the bottom (and in the middle), keep the menu above the button.
+        let proposedY: CGFloat = isTop
+            ? point.y + buttonSize / 2 + menuGap + menuHeight / 2
+            : point.y - buttonSize / 2 - menuGap - menuHeight / 2
+
+        let minX = menuWidth / 2 + 8
+        let maxX = size.width - menuWidth / 2 - 8
+        let minY = safe.top + menuHeight / 2 + 8
+        let maxY = size.height - safe.bottom - menuHeight / 2 - 8
+
+        return CGPoint(
+            x: min(max(proposedX, minX), maxX),
+            y: min(max(proposedY, minY), maxY)
+        )
+    }
+
+    private func menuAnchor(for point: CGPoint, in size: CGSize) -> UnitPoint {
+        let x: CGFloat = point.x <= edgeActivation ? 0 : (point.x >= size.width - edgeActivation ? 1 : 0.5)
+        let y: CGFloat = point.y <= edgeActivation ? 0 : 1
+        return UnitPoint(x: x, y: y)
     }
 
     private var dock: some View {
@@ -127,10 +166,7 @@ private struct UnifiedFeatureLauncher: View {
                         dragStartPosition = position
                     }
                     let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
-                    if moved && !didDrag {
-                        didDrag = true
-                        CoachHaptics.impact()
-                    }
+                    if moved && !didDrag { didDrag = true; CoachHaptics.impact() }
                     if didDrag {
                         position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
                     }
@@ -158,7 +194,8 @@ private struct UnifiedFeatureLauncher: View {
             menuButton(.progress, "My Progress", "chart.xyaxis.line")
             menuButton(.scheduledGoals, "Scheduled Goals", "calendar.badge.clock")
         }
-        .fixedSize()
+        .frame(width: menuWidth, height: menuHeight, alignment: .bottomTrailing)
+        .contentShape(Rectangle())
     }
 
     private func menuButton(_ destination: Destination, _ title: String, _ icon: String) -> some View {
