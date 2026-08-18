@@ -3,6 +3,8 @@ import SwiftData
 import UserNotifications
 import UIKit
 
+// MARK: - Global haptics
+
 enum HapticIntensity: String, CaseIterable, Identifiable {
     case off = "Off"
     case light = "Light"
@@ -22,112 +24,40 @@ enum HapticIntensity: String, CaseIterable, Identifiable {
 
 enum CoachHaptics {
     private static let key = "globalHapticIntensity"
-
-    static var intensity: HapticIntensity {
-        HapticIntensity(rawValue: UserDefaults.standard.string(forKey: key) ?? HapticIntensity.medium.rawValue) ?? .medium
-    }
-
-    static func setIntensity(_ value: HapticIntensity) {
-        UserDefaults.standard.set(value.rawValue, forKey: key)
-    }
-
-    static func selection() {
-        guard intensity != .off else { return }
-        let generator = UISelectionFeedbackGenerator()
-        generator.prepare()
-        generator.selectionChanged()
-    }
-
-    static func impact() {
-        guard intensity != .off else { return }
-        let generator = UIImpactFeedbackGenerator(style: impactStyle)
-        generator.prepare()
-        generator.impactOccurred(intensity: intensity.multiplier)
-    }
-
-    static func success() {
-        guard intensity != .off else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(.success)
-    }
-
-    private static var impactStyle: UIImpactFeedbackGenerator.FeedbackStyle {
-        switch intensity {
-        case .off, .light: return .light
-        case .medium: return .medium
-        case .strong: return .heavy
-        }
-    }
+    static var intensity: HapticIntensity { HapticIntensity(rawValue: UserDefaults.standard.string(forKey: key) ?? HapticIntensity.medium.rawValue) ?? .medium }
+    static func setIntensity(_ value: HapticIntensity) { UserDefaults.standard.set(value.rawValue, forKey: key) }
+    static func selection() { guard intensity != .off else { return }; let generator = UISelectionFeedbackGenerator(); generator.prepare(); generator.selectionChanged() }
+    static func impact() { guard intensity != .off else { return }; let generator = UIImpactFeedbackGenerator(style: impactStyle); generator.prepare(); generator.impactOccurred(intensity: intensity.multiplier) }
+    static func success() { guard intensity != .off else { return }; let generator = UINotificationFeedbackGenerator(); generator.prepare(); generator.notificationOccurred(.success) }
+    private static var impactStyle: UIImpactFeedbackGenerator.FeedbackStyle { switch intensity { case .off, .light: return .light; case .medium: return .medium; case .strong: return .heavy } }
 }
 
 private struct TabHapticInstaller: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeUIViewController(context: Context) -> UIViewController {
-        let controller = UIViewController()
-        controller.view.backgroundColor = .clear
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        DispatchQueue.main.async {
-            guard let tabBarController = uiViewController.findTabBarController() else { return }
-            if tabBarController.delegate !== context.coordinator {
-                tabBarController.delegate = context.coordinator
-            }
-        }
-    }
-
-    final class Coordinator: NSObject, UITabBarControllerDelegate {
-        func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {
-            CoachHaptics.selection()
-        }
-    }
+    func makeUIViewController(context: Context) -> UIViewController { let controller = UIViewController(); controller.view.backgroundColor = .clear; return controller }
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) { DispatchQueue.main.async { guard let tabBarController = uiViewController.findTabBarController() else { return }; if tabBarController.delegate !== context.coordinator { tabBarController.delegate = context.coordinator } } }
+    final class Coordinator: NSObject, UITabBarControllerDelegate { func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) { CoachHaptics.selection() } }
 }
 
 private extension UIViewController {
-    func findTabBarController() -> UITabBarController? {
-        var current: UIViewController? = self
-        while let controller = current {
-            if let tab = controller as? UITabBarController { return tab }
-            if let tab = controller.tabBarController { return tab }
-            current = controller.parent
-        }
-        return nil
-    }
+    func findTabBarController() -> UITabBarController? { var current: UIViewController? = self; while let controller = current { if let tab = controller as? UITabBarController { return tab }; if let tab = controller.tabBarController { return tab }; current = controller.parent }; return nil }
 }
 
 @main
 struct YouthfulApp: App {
-    init() {
-        UINavigationBar.appearance().tintColor = UIColor(PremiumTheme.ink)
-    }
-
+    init() { UINavigationBar.appearance().tintColor = UIColor(PremiumTheme.ink) }
     var body: some Scene {
         WindowGroup {
-            ZStack(alignment: .bottomTrailing) {
-                ContentView()
-                    .preferredColorScheme(.light)
-                    .background(TabHapticInstaller())
-
+            ZStack {
+                ContentView().preferredColorScheme(.light).background(TabHapticInstaller())
                 UnifiedFeatureLauncher()
             }
         }
-        .modelContainer(for: [
-            DailyLog.self,
-            Product.self,
-            ProgressPhoto.self,
-            ScheduledGoal.self,
-            ProductIntelligence.self,
-            SmartReminder.self,
-            PhotoNote.self
-        ])
+        .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self, ScheduledGoal.self, ProductIntelligence.self, SmartReminder.self, PhotoNote.self])
     }
 }
 
 // MARK: - AssistiveTouch-style unified floating feature menu
-
 private struct UnifiedFeatureLauncher: View {
     @State private var showing = false
     @State private var selectedDestination: Destination?
@@ -135,86 +65,61 @@ private struct UnifiedFeatureLauncher: View {
     @State private var dragStartPosition: CGPoint = .zero
     @State private var hasStoredPosition = false
 
-    private let buttonSize: CGFloat = 50
-    private let itemHeight: CGFloat = 42
-    private let itemSpacing: CGFloat = 8
-    private let edgePadding: CGFloat = 16
-    private let defaultBottomOffset: CGFloat = 86
+    private let buttonSize: CGFloat = 58
+    private let itemHeight: CGFloat = 44
+    private let itemSpacing: CGFloat = 9
+    private let edgePadding: CGFloat = 18
+    private let defaultBottomOffset: CGFloat = 105
 
-    private enum Destination: String, Identifiable {
-        case smartFeatures
-        case progress
-        case scheduledGoals
-        var id: String { rawValue }
-    }
+    private enum Destination: String, Identifiable { case smartFeatures, progress, scheduledGoals; var id: String { rawValue } }
 
     var body: some View {
         GeometryReader { proxy in
             let safe = proxy.safeAreaInsets
             let bounds = proxy.size
-            let defaultPosition = CGPoint(
-                x: bounds.width - edgePadding - buttonSize / 2,
-                y: bounds.height - safe.bottom - defaultBottomOffset
-            )
-
+            let defaultPosition = CGPoint(x: bounds.width - edgePadding - buttonSize / 2, y: bounds.height - safe.bottom - defaultBottomOffset)
             dock
                 .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
-                .gesture(
-                    DragGesture(minimumDistance: 4)
-                        .onChanged { value in
-                            if !hasStoredPosition {
-                                position = defaultPosition
-                                dragStartPosition = defaultPosition
-                                hasStoredPosition = true
-                            }
-                            position = CGPoint(
-                                x: dragStartPosition.x + value.translation.width,
-                                y: dragStartPosition.y + value.translation.height
-                            )
-                        }
-                        .onEnded { _ in
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-                                position = snap(position, in: bounds, safe: safe)
-                            }
-                            CoachHaptics.selection()
-                        }
-                )
-                .onAppear {
-                    if !hasStoredPosition { position = defaultPosition }
-                }
+                .gesture(DragGesture(minimumDistance: 4).onChanged { value in
+                    if !hasStoredPosition { position = defaultPosition; dragStartPosition = defaultPosition; hasStoredPosition = true }
+                    position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
+                }.onEnded { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) { position = snap(position, in: bounds, safe: safe) }
+                    CoachHaptics.selection()
+                })
+                .onAppear { if !hasStoredPosition { position = defaultPosition } }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .sheet(item: $selectedDestination) { destination in
-            destinationView(destination)
-        }
+        .sheet(item: $selectedDestination) { destination in destinationView(destination) }
     }
 
     private var dock: some View {
         ZStack(alignment: .bottomTrailing) {
             if showing {
                 menu
-                    .padding(.trailing, 2)
-                    .padding(.bottom, buttonSize + 10)
+                    .padding(.trailing, 3)
+                    .padding(.bottom, buttonSize + 12)
                     .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
             }
-
             Button {
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
                 CoachHaptics.selection()
             } label: {
-                Image(systemName: showing ? "xmark" : "sparkles")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(PremiumTheme.ink)
-                    .frame(width: buttonSize, height: buttonSize)
-                    .background(.ultraThinMaterial)
-                    .overlay { Circle().strokeBorder(.white.opacity(0.35), lineWidth: 0.8) }
-                    .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.16), radius: 14, y: 5)
+                ZStack {
+                    Circle().fill(.ultraThinMaterial)
+                    Circle().fill(.white.opacity(0.10))
+                    Circle().strokeBorder(.white.opacity(0.55), lineWidth: 1)
+                    Image(systemName: showing ? "xmark" : "sparkles")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(PremiumTheme.ink)
+                }
+                .frame(width: buttonSize, height: buttonSize)
+                .shadow(color: .black.opacity(0.18), radius: 15, y: 6)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(showing ? "Close feature menu" : "Open feature menu")
         }
-        .frame(width: 300, height: 300, alignment: .bottomTrailing)
+        .frame(width: 320, height: 320, alignment: .bottomTrailing)
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
     }
 
@@ -233,49 +138,28 @@ private struct UnifiedFeatureLauncher: View {
             selectedDestination = destination
         } label: {
             HStack(spacing: 8) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PremiumTheme.ink)
-                    .padding(.horizontal, 12)
-                    .frame(height: itemHeight)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(PremiumTheme.ink)
-                    .frame(width: itemHeight, height: itemHeight)
-                    .background(.ultraThinMaterial)
-                    .overlay { Circle().strokeBorder(.white.opacity(0.3), lineWidth: 0.7) }
-                    .clipShape(Circle())
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.ink).padding(.horizontal, 13).frame(height: itemHeight).background(.ultraThinMaterial).clipShape(Capsule())
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(PremiumTheme.ink).frame(width: itemHeight, height: itemHeight).background(.ultraThinMaterial).overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }.clipShape(Circle())
             }
-            .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+            .shadow(color: .black.opacity(0.11), radius: 9, y: 3)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private func destinationView(_ destination: Destination) -> some View {
-        switch destination {
-        case .smartFeatures: V2FeatureMenu()
-        case .progress: SmartFeaturesView()
-        case .scheduledGoals: ScheduledGoalsView()
-        }
+    @ViewBuilder private func destinationView(_ destination: Destination) -> some View {
+        switch destination { case .smartFeatures: V2FeatureMenu(); case .progress: SmartFeaturesView(); case .scheduledGoals: ScheduledGoalsView() }
     }
 
     private func clamped(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
-        let minX = edgePadding + buttonSize / 2
-        let maxX = size.width - edgePadding - buttonSize / 2
-        let minY = safe.top + edgePadding + buttonSize / 2
-        let maxY = size.height - safe.bottom - edgePadding - buttonSize / 2
+        let minX = edgePadding + buttonSize / 2, maxX = size.width - edgePadding - buttonSize / 2
+        let minY = safe.top + edgePadding + buttonSize / 2, maxY = size.height - safe.bottom - edgePadding - buttonSize / 2
         return CGPoint(x: min(max(point.x, minX), maxX), y: min(max(point.y, minY), maxY))
     }
 
     private func snap(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
-        let clampedPoint = clamped(point, in: size, safe: safe)
-        let left = edgePadding + buttonSize / 2
-        let right = size.width - edgePadding - buttonSize / 2
-        return CGPoint(x: clampedPoint.x < size.width / 2 ? left : right, y: clampedPoint.y)
+        let p = clamped(point, in: size, safe: safe)
+        let left = edgePadding + buttonSize / 2, right = size.width - edgePadding - buttonSize / 2
+        return CGPoint(x: p.x < size.width / 2 ? left : right, y: p.y)
     }
 }
