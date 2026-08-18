@@ -40,7 +40,7 @@ struct V2FeatureMenu: View {
                         featureLink("My Progress", "Streaks, completion, recommendations and product health.", "chart.xyaxis.line", SmartFeaturesView())
                         featureLink("Product Intelligence", "Opened dates, run-out estimates, expiration and notes.", "drop.circle.fill", ProductIntelligenceView())
                         featureLink("Smart Reminders", "Morning, evening and custom reminder times.", "bell.badge.fill", SmartRemindersView())
-                        featureLink("Compare Progress Photos", "Pick two dates and compare them side-by-side.", "rectangle.split.2x1", PhotoComparisonView())
+                        featureLink("Compare Progress Photos", "Add photos from your library or camera, then compare two dates side-by-side.", "rectangle.split.2x1", ProgressPhotoCaptureView())
                     }
                     .padding(20)
                     .padding(.bottom, 30)
