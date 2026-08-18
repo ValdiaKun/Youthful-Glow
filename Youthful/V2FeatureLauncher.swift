@@ -76,7 +76,7 @@ struct V2FeatureLauncher: View {
             .buttonStyle(.plain)
             .accessibilityLabel(showing ? "Close smart features" : "Open smart features")
         }
-        .frame(width: shortcutSize, height: 4 * shortcutSize + 3 * shortcutSpacing + dockSize + 24)
+        .frame(width: dockSize, height: 4 * shortcutSize + 3 * shortcutSpacing + dockSize + 24)
     }
 
     private var expandedMenu: some View {
@@ -92,11 +92,6 @@ struct V2FeatureLauncher: View {
         Button {
             CoachHaptics.selection()
             showing = false
-            // The main Smart Tools sheet remains the single destination for these shortcuts.
-            // Closing here also prevents the expanded dock from covering the selected screen.
-            DispatchQueue.main.async {
-                showing = true
-            }
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
