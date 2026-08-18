@@ -1,0 +1,183 @@
+name: Apply streak feature
+
+on:
+  push:
+    branches:
+      - v1.4b-premium-goals
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch Progress dashboard
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path("Youthful/ContentView.swift")
+          text = path.read_text()
+          start = text.index("struct ProgressDashboard: View {")
+          end = text.index("// MARK: - Photos", start)
+          old = text[start:end]
+
+          new = r'''struct ProgressDashboard: View {
+    @Query private var logs: [DailyLog]
+
+    private var completedDayCount: Int {
+        logs.filter(isCompletedDay).count
+    }
+
+    private var currentStreak: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let todayComplete = logs.first(where: { calendar.isDate($0.date, inSameDayAs: today) }).map(isCompletedDay) ?? false
+        var date = today
+        var streak = 0
+
+        if !todayComplete {
+            date = calendar.date(byAdding: .day, value: -1, to: date) ?? date
+        }
+
+        while let log = logs.first(where: { calendar.isDate($0.date, inSameDayAs: date) }), isCompletedDay(log) {
+            streak += 1
+            date = calendar.date(byAdding: .day, value: -1, to: date) ?? date
+        }
+        return streak
+    }
+
+    private var bestStreak: Int {
+        let calendar = Calendar.current
+        let completedDates = Set(logs.filter(isCompletedDay).map { calendar.startOfDay(for: $0.date) })
+        guard !completedDates.isEmpty else { return 0 }
+
+        var best = 0
+        for date in completedDates {
+            let previous = calendar.date(byAdding: .day, value: -1, to: date)!
+            guard !completedDates.contains(previous) else { continue }
+            var length = 1
+            var next = calendar.date(byAdding: .day, value: 1, to: date)!
+            while completedDates.contains(next) {
+                length += 1
+                next = calendar.date(byAdding: .day, value: 1, to: next)!
+            }
+            best = max(best, length)
+        }
+        return best
+    }
+
+    private var sevenDayAverage: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let values = (0..<7).map { offset -> Double in
+            let date = calendar.date(byAdding: .day, value: -offset, to: today)!
+            let count = logs.first(where: { calendar.isDate($0.date, inSameDayAs: date) })?.completedIDs.count ?? 0
+            return Double(count) / Double(max(RoutineCatalog.all.count, 1))
+        }
+        return Int((values.reduce(0, +) / 7.0 * 100).rounded())
+    }
+
+    private func isCompletedDay(_ log: DailyLog) -> Bool {
+        log.completedIDs.count >= RoutineCatalog.all.count && !RoutineCatalog.all.isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                PremiumBackground()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        Text("Progress").font(.system(size: 35, weight: .semibold, design: .serif))
+                        Text("A quiet record of consistency.").foregroundStyle(PremiumTheme.muted)
+                        streakCard
+                        PremiumCard {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Last 14 days").font(.headline)
+                                ForEach(0..<14, id: \\.self) { offset in
+                                    let date = Calendar.current.date(byAdding: .day, value: -offset, to: .now)!
+                                    let start = Calendar.current.startOfDay(for: date)
+                                    let count = logs.first(where: { $0.date == start })?.completedIDs.count ?? 0
+                                    HStack(spacing: 10) {
+                                        Text(date.formatted(.dateTime.weekday(.narrow))).font(.caption.weight(.bold)).frame(width: 18)
+                                        ProgressView(value: Double(count) / Double(max(RoutineCatalog.all.count, 1))).tint(PremiumTheme.ink)
+                                        Text("\\(count)").font(.caption2.weight(.semibold)).foregroundStyle(PremiumTheme.muted).frame(width: 18)
+                                    }
+                                }
+                            }
+                        }
+                        PremiumCard {
+                            VStack(alignment: .leading, spacing: 8) {
+                                CapsuleLabel(text: "Mindset")
+                                Text("Consistency beats intensity.").font(.system(size: 25, weight: .semibold, design: .serif))
+                                Text("The app tracks habits you can control. It doesn't assign a beauty score.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
+                            }
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+            .toolbar(.hidden, for: .navigationBar)
+        }
+    }
+
+    private var streakCard: some View {
+        PremiumCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        CapsuleLabel(text: "Routine streak")
+                        Text(currentStreak == 0 ? "Start your streak today." : "\\(currentStreak) day\\(currentStreak == 1 ? "" : "s") in a row")
+                            .font(.system(size: 25, weight: .semibold, design: .serif))
+                        Text("A streak counts when every ritual is completed for the day.")
+                            .font(.caption)
+                            .foregroundStyle(PremiumTheme.muted)
+                    }
+                    Spacer()
+                    Image(systemName: currentStreak > 0 ? "flame.fill" : "flame")
+                        .font(.system(size: 28))
+                        .foregroundStyle(PremiumTheme.warm)
+                }
+
+                HStack(spacing: 10) {
+                    streakMetric(title: "Best", value: "\\(bestStreak)d")
+                    streakMetric(title: "Days logged", value: "\\(completedDayCount)")
+                    streakMetric(title: "7-day", value: "\\(sevenDayAverage)%")
+                }
+            }
+        }
+    }
+
+    private func streakMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value).font(.system(size: 19, weight: .bold, design: .rounded))
+            Text(title).font(.caption2).foregroundStyle(PremiumTheme.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.black.opacity(0.035))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+'''
+
+          if "private var streakCard: some View" in old:
+              raise SystemExit("Streak feature already present; no change needed")
+          path.write_text(text[:start] + new + text[end:])
+      - name: Commit patch
+        run: |
+          if git diff --quiet -- Youthful/ContentView.swift; then
+            echo "No source changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Youthful/ContentView.swift
+          git commit -m "Add routine streak tracking"
+          git push
