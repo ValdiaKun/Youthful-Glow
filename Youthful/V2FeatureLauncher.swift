@@ -2,25 +2,118 @@ import SwiftUI
 
 struct V2FeatureLauncher: View {
     @State private var showing = false
+    @State private var position: CGPoint = .zero
+    @State private var dragStartPosition: CGPoint = .zero
+    @State private var hasStoredPosition = false
+
+    private let dockSize: CGFloat = 48
+    private let edgePadding: CGFloat = 18
 
     var body: some View {
+        GeometryReader { proxy in
+            let safe = proxy.safeAreaInsets
+            let bounds = proxy.size
+            let defaultPosition = CGPoint(
+                x: bounds.width - edgePadding - dockSize / 2,
+                y: bounds.height - safe.bottom - 150
+            )
+
+            dock
+                .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
+                .gesture(
+                    DragGesture(minimumDistance: 4)
+                        .onChanged { value in
+                            if !hasStoredPosition {
+                                position = defaultPosition
+                                dragStartPosition = defaultPosition
+                                hasStoredPosition = true
+                            }
+                            position = CGPoint(
+                                x: dragStartPosition.x + value.translation.width,
+                                y: dragStartPosition.y + value.translation.height
+                            )
+                        }
+                        .onEnded { _ in
+                            position = snap(position, in: bounds, safe: safe)
+                            CoachHaptics.selection()
+                        }
+                )
+                .onAppear {
+                    if !hasStoredPosition {
+                        position = defaultPosition
+                    }
+                }
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+
+    private var dock: some View {
+        Button {
+            CoachHaptics.selection()
+            showing.toggle()
+        } label: {
+            Image(systemName: showing ? "xmark" : "sparkles.rectangle.stack.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: dockSize, height: dockSize)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .topTrailing) {
+            if showing {
+                expandedMenu
+                    .offset(x: -4, y: -8)
+            }
+        }
+        .sheet(isPresented: $showing) {
+            V2FeatureMenu()
+        }
+    }
+
+    private var expandedMenu: some View {
+        VStack(spacing: 8) {
+            featureShortcut("chart.xyaxis.line", "Progress")
+            featureShortcut("drop.circle.fill", "Products")
+            featureShortcut("bell.badge.fill", "Reminders")
+            featureShortcut("rectangle.split.2x1", "Photos")
+        }
+        .padding(.bottom, dockSize + 8)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    private func featureShortcut(_ icon: String, _ label: String) -> some View {
         Button {
             CoachHaptics.selection()
             showing = true
         } label: {
-            Image(systemName: "sparkles.rectangle.stack.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 48, height: 48)
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .frame(width: 38, height: 38)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+                .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+                .accessibilityLabel(label)
         }
         .buttonStyle(.plain)
-        .padding(.trailing, 18)
-        .padding(.bottom, 188)
-        .sheet(isPresented: $showing) {
-            V2FeatureMenu()
-        }
+    }
+
+    private func clamped(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
+        let minX = edgePadding + dockSize / 2
+        let maxX = size.width - edgePadding - dockSize / 2
+        let minY = safe.top + edgePadding + dockSize / 2
+        let maxY = size.height - safe.bottom - edgePadding - dockSize / 2
+        return CGPoint(x: min(max(point.x, minX), maxX), y: min(max(point.y, minY), maxY))
+    }
+
+    private func snap(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
+        let clampedPoint = clamped(point, in: size, safe: safe)
+        let left = edgePadding + dockSize / 2
+        let right = size.width - edgePadding - dockSize / 2
+        return CGPoint(
+            x: clampedPoint.x < size.width / 2 ? left : right,
+            y: clampedPoint.y
+        )
     }
 }
 
@@ -57,7 +150,10 @@ struct V2FeatureMenu: View {
             .navigationTitle("Smart tools")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        CoachHaptics.selection()
+                        dismiss()
+                    }
                 }
             }
         }
@@ -101,6 +197,7 @@ private struct SmartFeatureSheet: View {
                 .padding(.top, 8)
 
             Button {
+                CoachHaptics.selection()
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
