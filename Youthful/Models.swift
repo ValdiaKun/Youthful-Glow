@@ -97,7 +97,7 @@ struct ProductsView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         Text("Routine").font(.system(size: 35, weight: .semibold, design: .serif))
                         Text("Build a routine around the products you actually use.").foregroundStyle(PremiumTheme.muted)
-                        Button { showingAdd = true } label: {
+                        Button { showingAdd = true; CoachHaptics.selection() } label: {
                             Label("Add product", systemImage: "plus")
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity).padding(15)
@@ -122,12 +122,12 @@ struct ProductsView: View {
                                             .font(.caption).foregroundStyle(PremiumTheme.muted).lineLimit(2)
                                     }
                                     Spacer()
-                                    Toggle("", isOn: Binding(get: { product.isActive }, set: { product.isActive = $0; try? context.save() }))
+                                    Toggle("", isOn: Binding(get: { product.isActive }, set: { product.isActive = $0; try? context.save(); CoachHaptics.selection() }))
                                         .labelsHidden()
                                 }}
                             }.onDelete { offsets in
                                 offsets.forEach { context.delete(products[$0]) }
-                                try? context.save()
+                                try? context.save(); CoachHaptics.impact()
                             }
                         }
                     }.padding(20)
@@ -158,25 +158,41 @@ struct AddProductView: View {
                     let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !trimmed.isEmpty else { return }
                     context.insert(Product(name: trimmed, category: category, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)))
-                    try? context.save(); dismiss()
+                    try? context.save(); CoachHaptics.success(); dismiss()
                 }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
             }
             .navigationTitle("Add product")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss(); CoachHaptics.selection() } } }
         }
     }
 }
 
 struct SettingsView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
+    @State private var hapticIntensity = CoachHaptics.intensity
+
     var body: some View {
         NavigationStack {
             ZStack { PremiumBackground(); Form {
                 Section("Youthful") {
-                    HStack { Text("Appearance Coach"); Spacer(); Text("V1.4a").foregroundStyle(PremiumTheme.muted) }
+                    HStack { Text("Appearance Coach"); Spacer(); Text("V1.4b").foregroundStyle(PremiumTheme.muted) }
                 }
                 Section("Reminders") {
-                    Toggle("Daily routine reminders", isOn: Binding(get: { notificationsEnabled }, set: { value in notificationsEnabled = value; if value { Task { await NotificationManager.shared.enable() } } else { NotificationManager.shared.disable() } }))
+                    Toggle("Daily routine reminders", isOn: Binding(get: { notificationsEnabled }, set: { value in notificationsEnabled = value; CoachHaptics.selection(); if value { Task { await NotificationManager.shared.enable() } } else { NotificationManager.shared.disable() } }))
+                }
+                Section("Haptics") {
+                    Picker("Global haptic intensity", selection: $hapticIntensity) {
+                        ForEach(HapticIntensity.allCases) { intensity in
+                            Text(intensity.rawValue).tag(intensity)
+                        }
+                    }
+                    .onChange(of: hapticIntensity) { _, newValue in
+                        CoachHaptics.setIntensity(newValue)
+                        if newValue != .off { CoachHaptics.selection() }
+                    }
+                    Text("Controls haptic feedback throughout Youthful, including tabs, switches and actions.")
+                        .font(.caption)
+                        .foregroundStyle(PremiumTheme.muted)
                 }
             }.scrollContentBackground(.hidden) }
             .navigationTitle("More")
