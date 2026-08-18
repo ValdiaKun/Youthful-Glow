@@ -91,11 +91,15 @@ private struct TabHapticInstaller: UIViewControllerRepresentable {
 
 private extension UIViewController {
     func findTabBarController() -> UITabBarController? {
-        if let tab = tabBarController { return tab }
-        for child in children {
-            if let tab = child.findTabBarController() { return tab }
+        // Walk upward iteratively. The previous child + parent recursion can
+        // bounce between the same controllers and overflow the main-thread stack.
+        var current: UIViewController? = self
+        while let controller = current {
+            if let tab = controller as? UITabBarController { return tab }
+            if let tab = controller.tabBarController { return tab }
+            current = controller.parent
         }
-        return parent?.findTabBarController()
+        return nil
     }
 }
 
