@@ -13,6 +13,8 @@
 		A00000000000000000000004 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* ContentView.swift */; };
         A00000000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* Assets.xcassets */; };
         A00000000000000000000006 /* AppearanceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* AppearanceCoach.swift */; };
+        A00000000000000000000007 /* SmartFeatures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* SmartFeatures.swift */; };
+        A00000000000000000000008 /* V2FeatureLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* V2FeatureLauncher.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +25,8 @@
 		A00000000000000000000014 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
         A00000000000000000000015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
         A00000000000000000000016 /* AppearanceCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceCoach.swift; sourceTree = "<group>"; };
+        A00000000000000000000017 /* SmartFeatures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartFeatures.swift; sourceTree = "<group>"; };
+        A00000000000000000000018 /* V2FeatureLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = V2FeatureLauncher.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +50,8 @@
 				A00000000000000000000013 /* NotificationManager.swift */,
 				A00000000000000000000014 /* ContentView.swift */,
 				A00000000000000000000016 /* AppearanceCoach.swift */,
+                A00000000000000000000017 /* SmartFeatures.swift */,
+                A00000000000000000000018 /* V2FeatureLauncher.swift */,
 			);
 			path = Youthful;
 			sourceTree = "<group>";
@@ -122,6 +128,8 @@
 				A00000000000000000000003 /* NotificationManager.swift in Sources */,
 				A00000000000000000000004 /* ContentView.swift in Sources */,
 				A00000000000000000000006 /* AppearanceCoach.swift in Sources */,
+                A00000000000000000000007 /* SmartFeatures.swift in Sources */,
+                A00000000000000000000008 /* V2FeatureLauncher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,7 +228,6 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
 				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
