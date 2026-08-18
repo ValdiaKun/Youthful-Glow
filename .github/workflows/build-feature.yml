@@ -15,22 +15,6 @@ jobs:
         with:
           ref: feature/routine-streaks
 
-      - name: Fix feature-branch Swift key path typo
-        run: |
-          set -e
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('Youthful/ContentView.swift')
-          s = p.read_text()
-          old = '@Query(sort: \\\\Product.name)'
-          new = '@Query(sort: \\Product.name)'
-          if old not in s:
-              raise SystemExit('Expected SmartRoutineCard Query line was not found')
-          p.write_text(s.replace(old, new, 1))
-          print('Fixed SmartRoutineCard @Query key path')
-          PY
-          grep -n 'SmartRoutineCard\|@Query(sort:' Youthful/ContentView.swift | head -10
-
       - name: Build unsigned iOS app
         run: |
           set -e
