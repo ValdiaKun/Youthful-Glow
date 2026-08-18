@@ -69,6 +69,32 @@ private struct ScheduledGoalsLauncher: View {
     }
 }
 
+// MARK: - Routine streaks launcher
+// Kept in this file so the existing Xcode project does not need a new PBX file reference.
+private struct RoutineStreaksLauncher: View {
+    @State private var showingStreaks = false
+
+    var body: some View {
+        Button {
+            CoachHaptics.selection()
+            showingStreaks = true
+        } label: {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 48, height: 48)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 18)
+        .padding(.bottom, 130)
+        .sheet(isPresented: $showingStreaks) {
+            SmartFeaturesView()
+        }
+    }
+}
+
 // MARK: - Scheduled goals
 
 @Model
