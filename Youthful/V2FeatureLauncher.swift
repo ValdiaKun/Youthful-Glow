@@ -98,14 +98,24 @@ struct V2FeatureLauncher: View {
             showing = false
             selectedFeature = feature
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .frame(width: shortcutSize, height: shortcutSize)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
-                .contentShape(Circle())
-                .accessibilityLabel(label)
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .frame(width: shortcutSize, height: shortcutSize)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PremiumTheme.ink)
+                    .padding(.horizontal, 10)
+                    .frame(height: shortcutSize)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+            }
+            .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+            .contentShape(Rectangle())
+            .accessibilityLabel(label)
         }
         .buttonStyle(.plain)
     }
