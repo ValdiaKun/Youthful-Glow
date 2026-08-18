@@ -232,7 +232,7 @@ struct RoutineRecommendation: Identifiable, Hashable {
 }
 
 struct SmartRoutineCard: View {
-    @Query(sort: \\Product.name) private var products: [Product]
+    @Query(sort: \Product.name) private var products: [Product]
     @State private var expanded = false
 
     private var recommendations: [RoutineRecommendation] { RoutineAdvisor.recommendations(for: products) }
