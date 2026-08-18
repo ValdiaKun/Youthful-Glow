@@ -168,7 +168,7 @@ struct AppearanceCoachView: View {
         }
     }
 
-    private func coachSection<Content: View>(title: String, subtitle: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
+    private func coachSection<Content: View>(title: String, subtitle: String, icon: String, @ViewBuilder content: @escaping () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 11) {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 3) {
