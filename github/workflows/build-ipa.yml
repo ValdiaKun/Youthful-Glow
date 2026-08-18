@@ -1,0 +1,21 @@
+name: Build Youthful IPA
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build unsigned app
+        run: |
+          set -e
+          xcodebuild -project Youthful.xcodeproj -scheme Youthful -sdk iphoneos -configuration Release -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+          APP=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" -type d | head -1)
+          test -n "$APP"
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry Youthful.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Youthful-unsigned-ipa
+          path: Youthful.ipa
