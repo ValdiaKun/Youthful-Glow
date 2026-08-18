@@ -1,0 +1,3 @@
+Build trigger for the latest feature/routine-streaks UI changes.
+
+This file intentionally contains no app logic. It exists to trigger the branch build workflow after the unified AssistiveTouch-style floating feature launcher changes.
