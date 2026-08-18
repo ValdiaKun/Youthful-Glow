@@ -25,6 +25,14 @@ struct V2FeatureLauncher: View {
 }
 
 struct V2FeatureMenu: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedFeature: SmartFeature?
+
+    enum SmartFeature: String, Identifiable {
+        case progress, intelligence, reminders, photos
+        var id: String { rawValue }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -37,24 +45,32 @@ struct V2FeatureMenu: View {
                             Text("Everything added to make your routine more useful, measurable and personal.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
                         }
 
-                        featureLink("My Progress", "Streaks, completion, recommendations and product health.", "chart.xyaxis.line", SmartFeaturesView())
-                        featureLink("Product Intelligence", "Opened dates, run-out estimates, expiration and notes.", "drop.circle.fill", ProductIntelligenceView())
-                        featureLink("Smart Reminders", "Morning, evening and custom reminder times.", "bell.badge.fill", SmartRemindersView())
-                        featureLink("Compare Progress Photos", "Add photos from your library or camera, then compare two dates side-by-side.", "rectangle.split.2x1", ProgressPhotoCaptureView())
+                        featureButton(.progress, "My Progress", "Streaks, completion, recommendations and product health.", "chart.xyaxis.line")
+                        featureButton(.intelligence, "Product Intelligence", "Opened dates, run-out estimates, expiration and notes.", "drop.circle.fill")
+                        featureButton(.reminders, "Smart Reminders", "Morning, evening and custom reminder times.", "bell.badge.fill")
+                        featureButton(.photos, "Compare Progress Photos", "Add photos from your library or camera, then compare two dates side-by-side.", "rectangle.split.2x1")
                     }
                     .padding(20)
                     .padding(.bottom, 30)
                 }
             }
             .navigationTitle("Smart tools")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .sheet(item: $selectedFeature) { feature in
+            SmartFeatureSheet(feature: feature)
         }
     }
 
-    @Environment(\.dismiss) private var dismiss
-
-    private func featureLink<Destination: View>(_ title: String, _ detail: String, _ icon: String, _ destination: Destination) -> some View {
-        NavigationLink(destination: destination) {
+    private func featureButton(_ feature: SmartFeature, _ title: String, _ detail: String, _ icon: String) -> some View {
+        Button {
+            CoachHaptics.selection()
+            selectedFeature = feature
+        } label: {
             PremiumCard {
                 HStack(spacing: 13) {
                     Image(systemName: icon)
@@ -72,5 +88,47 @@ struct V2FeatureMenu: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct SmartFeatureSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let feature: V2FeatureMenu.SmartFeature
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            destination
+                .padding(.top, 8)
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(PremiumTheme.ink)
+                    .frame(width: 34, height: 34)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 18)
+            .padding(.top, 8)
+            .accessibilityLabel("Close smart feature")
+        }
+    }
+
+    @ViewBuilder
+    private var destination: some View {
+        switch feature {
+        case .progress:
+            SmartFeaturesView()
+        case .intelligence:
+            ProductIntelligenceView()
+        case .reminders:
+            SmartRemindersView()
+        case .photos:
+            ProgressPhotoCaptureView()
+        }
     }
 }
