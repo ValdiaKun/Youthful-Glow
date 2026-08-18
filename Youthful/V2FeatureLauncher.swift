@@ -7,7 +7,9 @@ struct V2FeatureLauncher: View {
     @State private var hasStoredPosition = false
 
     private let dockSize: CGFloat = 48
+    private let shortcutSize: CGFloat = 40
     private let edgePadding: CGFloat = 18
+    private let shortcutSpacing: CGFloat = 12
 
     var body: some View {
         GeometryReader { proxy in
@@ -27,6 +29,7 @@ struct V2FeatureLauncher: View {
                                 position = defaultPosition
                                 dragStartPosition = defaultPosition
                                 hasStoredPosition = true
+                                CoachHaptics.selection()
                             }
                             position = CGPoint(
                                 x: dragStartPosition.x + value.translation.width,
@@ -34,7 +37,9 @@ struct V2FeatureLauncher: View {
                             )
                         }
                         .onEnded { _ in
-                            position = snap(position, in: bounds, safe: safe)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                position = snap(position, in: bounds, safe: safe)
+                            }
                             CoachHaptics.selection()
                         }
                 )
@@ -48,48 +53,54 @@ struct V2FeatureLauncher: View {
     }
 
     private var dock: some View {
-        Button {
-            CoachHaptics.selection()
-            showing.toggle()
-        } label: {
-            Image(systemName: showing ? "xmark" : "sparkles.rectangle.stack.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: dockSize, height: dockSize)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .topTrailing) {
+        ZStack(alignment: .bottom) {
             if showing {
                 expandedMenu
-                    .offset(x: -4, y: -8)
+                    .offset(y: -(dockSize + 14))
+                    .transition(.scale(scale: 0.82, anchor: .bottom).combined(with: .opacity))
             }
+
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                    showing.toggle()
+                }
+                CoachHaptics.selection()
+            } label: {
+                Image(systemName: showing ? "xmark" : "sparkles.rectangle.stack.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: dockSize, height: dockSize)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showing ? "Close smart features" : "Open smart features")
         }
-        .sheet(isPresented: $showing) {
-            V2FeatureMenu()
-        }
+        .frame(width: shortcutSize, height: 4 * shortcutSize + 3 * shortcutSpacing + dockSize + 24)
     }
 
     private var expandedMenu: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: shortcutSpacing) {
             featureShortcut("chart.xyaxis.line", "Progress")
             featureShortcut("drop.circle.fill", "Products")
             featureShortcut("bell.badge.fill", "Reminders")
             featureShortcut("rectangle.split.2x1", "Photos")
         }
-        .padding(.bottom, dockSize + 8)
-        .transition(.scale.combined(with: .opacity))
     }
 
     private func featureShortcut(_ icon: String, _ label: String) -> some View {
         Button {
             CoachHaptics.selection()
-            showing = true
+            showing = false
+            // The main Smart Tools sheet remains the single destination for these shortcuts.
+            // Closing here also prevents the expanded dock from covering the selected screen.
+            DispatchQueue.main.async {
+                showing = true
+            }
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
-                .frame(width: 38, height: 38)
+                .frame(width: shortcutSize, height: shortcutSize)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
