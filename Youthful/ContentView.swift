@@ -177,7 +177,7 @@ struct TodayView: View {
 
     private var dailyMetrics: some View {
         HStack(spacing: 12) {
-            MetricTile(icon: "bed.double.fill", title: "Sleep", value: log.sleepHours == 0 ? "—" : "\(log.sleepHours, specifier: "%.1f")h") {
+            MetricTile(icon: "bed.double.fill", title: "Sleep", value: log.sleepHours == 0 ? "—" : String(format: "%.1f", log.sleepHours) + "h") {
                 log.sleepHours = log.sleepHours >= 9 ? 0 : min(9, log.sleepHours + 1)
                 try? context.save()
             }
