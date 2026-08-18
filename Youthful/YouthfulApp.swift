@@ -14,7 +14,6 @@ struct YouthfulApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .appearanceCoachEntry()
                 .preferredColorScheme(.light)
         }
         .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self])
