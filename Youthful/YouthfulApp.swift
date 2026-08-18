@@ -73,19 +73,6 @@ private struct UnifiedFeatureLauncher: View {
             dock
                 .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
                 .contentShape(Circle().size(width: buttonSize + 28, height: buttonSize + 28))
-                .gesture(
-                    DragGesture(minimumDistance: 8, coordinateSpace: .local)
-                        .onChanged { value in
-                            if !hasStoredPosition { position = defaultPosition; dragStartPosition = defaultPosition; hasStoredPosition = true }
-                            if !didDrag { didDrag = true; CoachHaptics.impact() }
-                            position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
-                        }
-                        .onEnded { _ in
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) { position = clamped(position, in: bounds, safe: safe) }
-                            CoachHaptics.selection()
-                            DispatchQueue.main.async { didDrag = false }
-                        }
-                )
                 .onAppear { if !hasStoredPosition { position = defaultPosition } }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -100,6 +87,7 @@ private struct UnifiedFeatureLauncher: View {
                     .padding(.bottom, buttonSize + 12)
                     .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
             }
+
             ZStack {
                 Circle().fill(.ultraThinMaterial)
                 Circle().fill(.white.opacity(0.10))
@@ -111,16 +99,44 @@ private struct UnifiedFeatureLauncher: View {
             .frame(width: buttonSize, height: buttonSize)
             .shadow(color: .black.opacity(0.18), radius: 15, y: 6)
             .contentShape(Circle())
-            .onTapGesture {
-                guard !didDrag else { return }
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
-                CoachHaptics.selection()
-            }
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                    .onChanged { value in
+                        if !hasStoredPosition {
+                            position = CGPoint(x: value.startLocation.x, y: value.startLocation.y)
+                            hasStoredPosition = true
+                        }
+                        if !didDrag && (abs(value.translation.width) > 6 || abs(value.translation.height) > 6) {
+                            didDrag = true
+                            CoachHaptics.impact()
+                        }
+                        guard didDrag else { return }
+                        position = CGPoint(
+                            x: dragStartPosition.x + value.translation.width,
+                            y: dragStartPosition.y + value.translation.height
+                        )
+                    }
+                    .onEnded { value in
+                        let moved = abs(value.translation.width) > 6 || abs(value.translation.height) > 6
+                        if !moved {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
+                            CoachHaptics.selection()
+                        } else {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+                                position = clamped(position, in: UIScreen.main.bounds.size, safe: EdgeInsets())
+                            }
+                            CoachHaptics.selection()
+                        }
+                        dragStartPosition = position
+                        didDrag = false
+                    }
+            )
             .accessibilityLabel(showing ? "Close feature menu" : "Open feature menu")
             .accessibilityAddTraits(.isButton)
         }
         .frame(width: buttonSize, height: buttonSize, alignment: .bottomTrailing)
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
+        .onAppear { dragStartPosition = position }
     }
 
     private var menu: some View {
