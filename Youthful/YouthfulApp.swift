@@ -42,8 +42,7 @@ struct YouthfulApp: App {
         WindowGroup {
             ZStack {
                 ContentView().preferredColorScheme(.light).background(TabHapticInstaller())
-                UnifiedFeatureLauncher()
-                    .zIndex(9999)
+                UnifiedFeatureLauncher().zIndex(9999)
             }
         }
         .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self, ScheduledGoal.self, ProductIntelligence.self, SmartReminder.self, PhotoNote.self])
@@ -68,7 +67,9 @@ private struct UnifiedFeatureLauncher: View {
     private let menuGap: CGFloat = 12
     private let menuWidth: CGFloat = 210
     private let edgeActivation: CGFloat = 105
+    private let iconColumnWidth: CGFloat = 44
     private enum Destination: String, Identifiable { case smartFeatures, progress, scheduledGoals; var id: String { rawValue } }
+    private enum MenuHorizontalSide { case left, right, center }
 
     var body: some View {
         GeometryReader { proxy in
@@ -79,20 +80,16 @@ private struct UnifiedFeatureLauncher: View {
 
             ZStack {
                 if showing {
-                    menu
-                        .position(menuCenter(for: current, in: bounds, safe: safe))
+                    menu(for: current, in: bounds, safe: safe)
                         .zIndex(1)
-                        .transition(.scale(scale: 0.88, anchor: menuAnchor(for: current, in: bounds)).combined(with: .opacity))
+                        .transition(.scale(scale: 0.88, anchor: .center).combined(with: .opacity))
                 }
 
                 dock
                     .position(current)
                     .zIndex(2)
                     .onAppear {
-                        if !hasStoredPosition {
-                            position = defaultPosition
-                            dragStartPosition = defaultPosition
-                        }
+                        if !hasStoredPosition { position = defaultPosition; dragStartPosition = defaultPosition }
                     }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -108,40 +105,55 @@ private struct UnifiedFeatureLauncher: View {
         hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition
     }
 
-    private func menuCenter(for point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
-        let isLeft = point.x <= edgeActivation
-        let isRight = point.x >= size.width - edgeActivation
+    private func menuSide(for point: CGPoint, in size: CGSize) -> MenuHorizontalSide {
+        if point.x <= edgeActivation { return .right }
+        if point.x >= size.width - edgeActivation { return .left }
+        return .center
+    }
+
+    private func menu(for point: CGPoint, in size: CGSize, safe: EdgeInsets) -> some View {
+        let side = menuSide(for: point, in: size)
         let isTop = point.y <= safe.top + edgeActivation
         let isBottom = point.y >= size.height - safe.bottom - edgeActivation
 
-        // Horizontally reverse the menu when the button is near the left edge.
-        let proposedX: CGFloat = isLeft
-            ? point.x + buttonSize / 2 + menuGap + menuWidth / 2
-            : isRight
-                ? point.x - buttonSize / 2 - menuGap - menuWidth / 2
-                : point.x
+        // The menu is positioned so the center of its icon column always lands
+        // exactly on the floating button's center. Labels then extend outward.
+        let menuX: CGFloat = {
+            switch side {
+            case .left: return point.x - menuWidth + iconColumnWidth / 2
+            case .right: return point.x - iconColumnWidth / 2
+            case .center: return point.x - menuWidth / 2
+            }
+        }()
 
-        // Vertically reverse the menu when the button is near the top.
-        // At the bottom (and in the middle), keep the menu above the button.
-        let proposedY: CGFloat = isTop
+        let menuY = isTop
             ? point.y + buttonSize / 2 + menuGap + menuHeight / 2
             : point.y - buttonSize / 2 - menuGap - menuHeight / 2
 
-        let minX = menuWidth / 2 + 8
-        let maxX = size.width - menuWidth / 2 - 8
+        let minX: CGFloat = {
+            switch side {
+            case .left: return 8
+            case .right: return 8 - (iconColumnWidth / 2)
+            case .center: return 8
+            }
+        }()
+        let maxX = size.width - menuWidth - 8 + (side == .right ? iconColumnWidth : 0)
+        let clampedX = min(max(menuX, minX), maxX)
         let minY = safe.top + menuHeight / 2 + 8
         let maxY = size.height - safe.bottom - menuHeight / 2 - 8
+        let clampedY = min(max(menuY, minY), maxY)
 
-        return CGPoint(
-            x: min(max(proposedX, minX), maxX),
-            y: min(max(proposedY, minY), maxY)
-        )
+        return menuContents(side: side)
+            .position(x: clampedX + menuWidth / 2, y: clampedY)
     }
 
-    private func menuAnchor(for point: CGPoint, in size: CGSize) -> UnitPoint {
-        let x: CGFloat = point.x <= edgeActivation ? 0 : (point.x >= size.width - edgeActivation ? 1 : 0.5)
-        let y: CGFloat = point.y <= edgeActivation ? 0 : 1
-        return UnitPoint(x: x, y: y)
+    private func menuContents(side: MenuHorizontalSide) -> some View {
+        VStack(spacing: itemSpacing) {
+            menuButton(.smartFeatures, "Smart Features", "sparkles.rectangle.stack.fill", side: side)
+            menuButton(.progress, "My Progress", "chart.xyaxis.line", side: side)
+            menuButton(.scheduledGoals, "Scheduled Goals", "calendar.badge.clock", side: side)
+        }
+        .frame(width: menuWidth, height: menuHeight, alignment: side == .right ? .leading : (side == .left ? .trailing : .center))
     }
 
     private var dock: some View {
@@ -167,9 +179,7 @@ private struct UnifiedFeatureLauncher: View {
                     }
                     let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
                     if moved && !didDrag { didDrag = true; CoachHaptics.impact() }
-                    if didDrag {
-                        position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
-                    }
+                    if didDrag { position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height) }
                 }
                 .onEnded { value in
                     let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
@@ -188,30 +198,49 @@ private struct UnifiedFeatureLauncher: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    private var menu: some View {
-        VStack(alignment: .trailing, spacing: itemSpacing) {
-            menuButton(.smartFeatures, "Smart Features", "sparkles.rectangle.stack.fill")
-            menuButton(.progress, "My Progress", "chart.xyaxis.line")
-            menuButton(.scheduledGoals, "Scheduled Goals", "calendar.badge.clock")
-        }
-        .frame(width: menuWidth, height: menuHeight, alignment: .bottomTrailing)
-        .contentShape(Rectangle())
-    }
-
-    private func menuButton(_ destination: Destination, _ title: String, _ icon: String) -> some View {
+    private func menuButton(_ destination: Destination, _ title: String, _ icon: String, side: MenuHorizontalSide) -> some View {
         Button {
             CoachHaptics.selection()
             withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) { showing = false }
             selectedDestination = destination
         } label: {
             HStack(spacing: 8) {
-                Text(title).font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.ink).padding(.horizontal, 13).frame(height: itemHeight).background(.ultraThinMaterial).clipShape(Capsule())
-                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(PremiumTheme.ink).frame(width: itemHeight, height: itemHeight).background(.ultraThinMaterial).overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }.clipShape(Circle())
+                if side == .left {
+                    labelView(title)
+                    iconView(icon)
+                } else if side == .right {
+                    iconView(icon)
+                    labelView(title)
+                } else {
+                    labelView(title)
+                    iconView(icon)
+                }
             }
-            .shadow(color: .black.opacity(0.11), radius: 9, y: 3)
+            .frame(width: menuWidth, height: itemHeight, alignment: side == .left ? .trailing : (side == .right ? .leading : .trailing))
             .contentShape(Rectangle())
+            .shadow(color: .black.opacity(0.11), radius: 9, y: 3)
         }
         .buttonStyle(.plain)
+    }
+
+    private func iconView(_ icon: String) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(PremiumTheme.ink)
+            .frame(width: itemHeight, height: itemHeight)
+            .background(.ultraThinMaterial)
+            .overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }
+            .clipShape(Circle())
+    }
+
+    private func labelView(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(PremiumTheme.ink)
+            .padding(.horizontal, 13)
+            .frame(height: itemHeight)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
     }
 
     @ViewBuilder private func destinationView(_ destination: Destination) -> some View {
