@@ -73,7 +73,12 @@ private struct UnifiedFeatureLauncher: View {
             dock
                 .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
                 .contentShape(Circle().size(width: buttonSize + 28, height: buttonSize + 28))
-                .onAppear { if !hasStoredPosition { position = defaultPosition } }
+                .onAppear {
+                    if !hasStoredPosition {
+                        position = defaultPosition
+                        dragStartPosition = defaultPosition
+                    }
+                }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(item: $selectedDestination) { destination in destinationView(destination) }
@@ -103,18 +108,17 @@ private struct UnifiedFeatureLauncher: View {
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)
                     .onChanged { value in
                         if !hasStoredPosition {
-                            position = CGPoint(x: value.startLocation.x, y: value.startLocation.y)
                             hasStoredPosition = true
+                            position = CGPoint(x: value.startLocation.x, y: value.startLocation.y)
+                            dragStartPosition = position
                         }
                         if !didDrag && (abs(value.translation.width) > 6 || abs(value.translation.height) > 6) {
                             didDrag = true
                             CoachHaptics.impact()
                         }
                         guard didDrag else { return }
-                        position = CGPoint(
-                            x: dragStartPosition.x + value.translation.width,
-                            y: dragStartPosition.y + value.translation.height
-                        )
+                        position = CGPoint(x: dragStartPosition.x + value.translation.width,
+                                           y: dragStartPosition.y + value.translation.height)
                     }
                     .onEnded { value in
                         let moved = abs(value.translation.width) > 6 || abs(value.translation.height) > 6
@@ -125,9 +129,9 @@ private struct UnifiedFeatureLauncher: View {
                             withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
                                 position = clamped(position, in: UIScreen.main.bounds.size, safe: EdgeInsets())
                             }
+                            dragStartPosition = position
                             CoachHaptics.selection()
                         }
-                        dragStartPosition = position
                         didDrag = false
                     }
             )
