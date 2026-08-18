@@ -116,6 +116,7 @@ struct YouthfulApp: App {
                     .preferredColorScheme(.light)
                     .background(TabHapticInstaller())
                 ScheduledGoalsLauncher()
+                RoutineStreaksLauncher()
             }
         }
         .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self, ScheduledGoal.self])
