@@ -93,44 +93,68 @@ struct ProductsView: View {
     var body: some View {
         NavigationStack {
             ZStack { PremiumBackground()
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("Routine").font(.system(size: 35, weight: .semibold, design: .serif))
-                        Text("Build a routine around the products you actually use.").foregroundStyle(PremiumTheme.muted)
+                        HStack(alignment: .bottom) {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Routine").font(.system(size: 35, weight: .semibold, design: .serif))
+                                Text("Your products, organized into one simple ritual.").foregroundStyle(PremiumTheme.muted)
+                            }
+                            Spacer()
+                            Text("\(products.count)").font(.caption.weight(.bold)).foregroundStyle(PremiumTheme.muted)
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                                .background(Color.black.opacity(0.05)).clipShape(Capsule())
+                        }
+
                         Button { showingAdd = true; CoachHaptics.selection() } label: {
-                            Label("Add product", systemImage: "plus")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity).padding(15)
-                                .background(PremiumTheme.ink).foregroundStyle(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                            HStack(spacing: 10) {
+                                Image(systemName: "plus.circle.fill").font(.title3)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Add product").font(.subheadline.weight(.bold))
+                                    Text("Cleanser, SPF, moisturizer, hair care…").font(.caption).opacity(0.8)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.caption.weight(.bold)).opacity(0.7)
+                            }
+                            .foregroundStyle(.white)
+                            .padding(16)
+                            .background(PremiumTheme.ink)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .shadow(color: .black.opacity(0.10), radius: 12, y: 6)
                         }.buttonStyle(.plain)
 
                         if products.isEmpty {
-                            PremiumCard { VStack(alignment: .leading, spacing: 8) {
+                            PremiumCard { VStack(alignment: .leading, spacing: 10) {
                                 Image(systemName: "drop.circle").font(.title2).foregroundStyle(PremiumTheme.warm)
                                 Text("No products yet").font(.headline)
-                                Text("Add your cleanser, moisturizer, SPF, hair products and other essentials.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
+                                Text("Add the products you actually use. They will stay here as your personal routine library.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
                             }}
                         } else {
-                            ForEach(products) { product in
-                                PremiumCard { HStack(spacing: 12) {
-                                    Image(systemName: product.isActive ? "checkmark.circle.fill" : "circle")
-                                        .foregroundStyle(product.isActive ? PremiumTheme.ink : PremiumTheme.muted)
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(product.name).font(.subheadline.weight(.semibold))
-                                        Text(product.category + (product.notes.isEmpty ? "" : " · " + product.notes))
-                                            .font(.caption).foregroundStyle(PremiumTheme.muted).lineLimit(2)
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Your products").font(.system(size: 21, weight: .semibold, design: .serif))
+                                ForEach(products) { product in
+                                    PremiumCard { HStack(spacing: 12) {
+                                        Image(systemName: product.isActive ? "checkmark.circle.fill" : "circle")
+                                            .font(.title3)
+                                            .foregroundStyle(product.isActive ? PremiumTheme.ink : PremiumTheme.muted)
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(product.name).font(.subheadline.weight(.semibold))
+                                            Text(product.category + (product.notes.isEmpty ? "" : " · " + product.notes))
+                                                .font(.caption).foregroundStyle(PremiumTheme.muted).lineLimit(2)
+                                        }
+                                        Spacer()
+                                        Toggle("Active", isOn: Binding(get: { product.isActive }, set: { product.isActive = $0; try? context.save(); CoachHaptics.selection() }))
+                                            .labelsHidden()
+                                    }}
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            context.delete(product); try? context.save(); CoachHaptics.impact()
+                                        } label: { Label("Delete product", systemImage: "trash") }
                                     }
-                                    Spacer()
-                                    Toggle("", isOn: Binding(get: { product.isActive }, set: { product.isActive = $0; try? context.save(); CoachHaptics.selection() }))
-                                        .labelsHidden()
-                                }}
-                            }.onDelete { offsets in
-                                offsets.forEach { context.delete(products[$0]) }
-                                try? context.save(); CoachHaptics.impact()
+                                }
                             }
                         }
-                    }.padding(20)
+                    }.padding(20).padding(.bottom, 32)
                 }
             }.toolbar(.hidden, for: .navigationBar)
         }
@@ -144,26 +168,96 @@ struct AddProductView: View {
     @State private var name = ""
     @State private var category = "Skincare"
     @State private var notes = ""
+    @FocusState private var nameFocused: Bool
     private let categories = ["Skincare", "Hair", "Beard", "Grooming", "Other"]
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canSave: Bool { !trimmedName.isEmpty }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Product") {
-                    TextField("Product name", text: $name)
-                    Picker("Category", selection: $category) { ForEach(categories, id: \.self) { Text($0) } }
-                    TextField("Notes (optional)", text: $notes)
+            ZStack(alignment: .bottom) {
+                PremiumBackground()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            CapsuleLabel(text: "Routine library")
+                            Text("Add a product").font(.system(size: 32, weight: .semibold, design: .serif))
+                            Text("Save the products you actually use so your routine stays easy to maintain.")
+                                .font(.subheadline).foregroundStyle(PremiumTheme.muted)
+                        }
+
+                        PremiumCard {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("PRODUCT DETAILS").font(.system(size: 10, weight: .bold, design: .rounded)).tracking(2).foregroundStyle(PremiumTheme.muted)
+                                TextField("Product name", text: $name)
+                                    .textInputAutocapitalization(.words)
+                                    .focused($nameFocused)
+                                    .padding(14)
+                                    .background(Color.black.opacity(0.045))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                Picker("Category", selection: $category) {
+                                    ForEach(categories, id: \.self) { Text($0) }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                TextField("Notes (optional)", text: $notes, axis: .vertical)
+                                    .lineLimit(2...4)
+                                    .padding(14)
+                                    .background(Color.black.opacity(0.045))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            }
+                        }
+
+                        Text("You can change whether a product is active later from the Routine tab.")
+                            .font(.caption).foregroundStyle(PremiumTheme.muted)
+                            .padding(.horizontal, 4)
+
+                        // Extra bottom space keeps the form content above the persistent save action.
+                        Color.clear.frame(height: 84)
+                    }
+                    .padding(20)
+                    .padding(.bottom, 20)
                 }
-                Section { Button("Add to routine") {
-                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-                    context.insert(Product(name: trimmed, category: category, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)))
-                    try? context.save(); CoachHaptics.success(); dismiss()
-                }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+
+                VStack(spacing: 8) {
+                    Button(action: saveProduct) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Add to routine").fontWeight(.bold)
+                            Spacer()
+                            Image(systemName: "arrow.right").font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 18)
+                        .frame(height: 54)
+                        .background(canSave ? PremiumTheme.ink : PremiumTheme.muted.opacity(0.35))
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    .disabled(!canSave)
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+                }
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+                .background(.ultraThinMaterial)
             }
-            .navigationTitle("Add product")
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss(); CoachHaptics.selection() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss(); CoachHaptics.selection() }
+                }
+            }
+            .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { nameFocused = true } }
         }
+    }
+
+    private func saveProduct() {
+        guard canSave else { return }
+        let product = Product(name: trimmedName, category: category, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines))
+        context.insert(product)
+        try? context.save()
+        CoachHaptics.success()
+        dismiss()
     }
 }
 
