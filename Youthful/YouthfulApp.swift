@@ -5,17 +5,41 @@ import UserNotifications
 @main
 struct YouthfulApp: App {
     init() {
-        // Youthful uses a warm editorial light theme. Keeping the system sheet
-        // in the same appearance prevents dark-mode controls from becoming
-        // unreadable against the premium light UI.
         UINavigationBar.appearance().tintColor = UIColor(PremiumTheme.ink)
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.light)
+            ZStack(alignment: .bottomTrailing) {
+                ContentView()
+                    .preferredColorScheme(.light)
+                ScheduledGoalsLauncher()
+            }
         }
-        .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self])
+        .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self, ScheduledGoal.self])
+    }
+}
+
+private struct ScheduledGoalsLauncher: View {
+    @State private var showingGoals = false
+
+    var body: some View {
+        Button {
+            CoachHaptics.selection()
+            showingGoals = true
+        } label: {
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 48, height: 48)
+                .background(.ultraThinMaterial)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 18)
+        .padding(.bottom, 72)
+        .sheet(isPresented: $showingGoals) {
+            ScheduledGoalsView()
+        }
     }
 }
