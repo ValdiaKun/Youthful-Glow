@@ -113,9 +113,7 @@ struct YouthfulApp: App {
                     .preferredColorScheme(.light)
                     .background(TabHapticInstaller())
 
-                ScheduledGoalsLauncher()
-                RoutineStreaksLauncher()
-                V2FeatureLauncher()
+                UnifiedFeatureLauncher()
             }
         }
         .modelContainer(for: [
@@ -130,52 +128,103 @@ struct YouthfulApp: App {
     }
 }
 
-private struct ScheduledGoalsLauncher: View {
-    @State private var showingGoals = false
+// MARK: - Unified floating feature menu
+
+private struct UnifiedFeatureLauncher: View {
+    @State private var showing = false
+    @State private var selectedDestination: Destination?
+
+    private let buttonSize: CGFloat = 50
+    private let itemHeight: CGFloat = 44
+    private let itemSpacing: CGFloat = 10
+    private let trailingPadding: CGFloat = 18
+    private let bottomPadding: CGFloat = 72
+
+    private enum Destination: String, Identifiable {
+        case smartFeatures
+        case progress
+        case scheduledGoals
+
+        var id: String { rawValue }
+    }
 
     var body: some View {
-        Button {
-            CoachHaptics.selection()
-            showingGoals = true
-        } label: {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 48, height: 48)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+        VStack(alignment: .trailing, spacing: itemSpacing) {
+            if showing {
+                menu
+                    .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    showing.toggle()
+                }
+                CoachHaptics.selection()
+            } label: {
+                Image(systemName: showing ? "xmark" : "sparkles.rectangle.stack.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .frame(width: buttonSize, height: buttonSize)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.14), radius: 12, y: 5)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showing ? "Close feature menu" : "Open feature menu")
         }
-        .buttonStyle(.plain)
-        .padding(.trailing, 18)
-        .padding(.bottom, 72)
-        .sheet(isPresented: $showingGoals) {
-            ScheduledGoalsView()
+        .padding(.trailing, trailingPadding)
+        .padding(.bottom, bottomPadding)
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
+        .sheet(item: $selectedDestination) { destination in
+            destinationView(destination)
         }
     }
-}
 
-// MARK: - Routine streaks launcher
+    private var menu: some View {
+        VStack(alignment: .trailing, spacing: itemSpacing) {
+            menuButton(.smartFeatures, "Smart Features", "sparkles.rectangle.stack.fill")
+            menuButton(.progress, "My Progress", "chart.xyaxis.line")
+            menuButton(.scheduledGoals, "Scheduled Goals", "calendar.badge.clock")
+        }
+    }
 
-private struct RoutineStreaksLauncher: View {
-    @State private var showingStreaks = false
-
-    var body: some View {
+    private func menuButton(_ destination: Destination, _ title: String, _ icon: String) -> some View {
         Button {
             CoachHaptics.selection()
-            showingStreaks = true
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                showing = false
+            }
+            selectedDestination = destination
         } label: {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 48, height: 48)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 5)
+            HStack(spacing: 10) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PremiumTheme.ink)
+                    .padding(.horizontal, 13)
+                    .frame(height: itemHeight)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: itemHeight, height: itemHeight)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+            .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.trailing, 18)
-        .padding(.bottom, 130)
-        .sheet(isPresented: $showingStreaks) {
+    }
+
+    @ViewBuilder
+    private func destinationView(_ destination: Destination) -> some View {
+        switch destination {
+        case .smartFeatures:
+            V2FeatureMenu()
+        case .progress:
             SmartFeaturesView()
+        case .scheduledGoals:
+            ScheduledGoalsView()
         }
     }
 }
