@@ -5,15 +5,13 @@ import UserNotifications
 @main
 struct YouthfulApp: App {
     init() {
-        // Youthful uses a warm editorial light theme. Keeping the system sheet
-        // in the same appearance prevents dark-mode controls from becoming
-        // unreadable against the premium light UI.
+        // Keep the system navigation controls consistent with the light editorial UI.
         UINavigationBar.appearance().tintColor = UIColor(PremiumTheme.ink)
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .preferredColorScheme(.light)
         }
         .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self])
