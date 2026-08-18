@@ -73,84 +73,83 @@ private struct UnifiedFeatureLauncher: View {
             let bounds = proxy.size
             let defaultPosition = CGPoint(x: bounds.width - edgePadding - buttonSize / 2, y: bounds.height - safe.bottom - defaultBottomOffset)
 
-            dock
-                .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
-                .onAppear {
-                    if !hasStoredPosition {
-                        position = defaultPosition
-                        dragStartPosition = defaultPosition
-                    }
+            ZStack {
+                if showing {
+                    menu
+                        .position(x: launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe).x,
+                                  y: launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe).y - buttonSize / 2 - 12 - menuHeight / 2)
+                        .zIndex(1)
+                        .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
                 }
+
+                dock
+                    .position(launcherPoint(defaultPosition: defaultPosition, bounds: bounds, safe: safe))
+                    .zIndex(2)
+                    .onAppear {
+                        if !hasStoredPosition {
+                            position = defaultPosition
+                            dragStartPosition = defaultPosition
+                        }
+                    }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(item: $selectedDestination) { destination in destinationView(destination) }
     }
 
+    private var menuHeight: CGFloat { itemHeight * 3 + itemSpacing * 2 }
+
+    private func launcherPoint(defaultPosition: CGPoint, bounds: CGSize, safe: EdgeInsets) -> CGPoint {
+        hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition
+    }
+
     private var dock: some View {
-        ZStack(alignment: .bottomTrailing) {
-            if showing {
-                menu
-                    .padding(.trailing, 3)
-                    .padding(.bottom, buttonSize + 12)
-                    .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
-            }
-
-            ZStack {
-                Circle().fill(.ultraThinMaterial)
-                Circle().fill(.white.opacity(0.10))
-                Circle().strokeBorder(.white.opacity(0.55), lineWidth: 1)
-                Image(systemName: showing ? "xmark" : "sparkles")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(PremiumTheme.ink)
-            }
-            .frame(width: buttonSize, height: buttonSize)
-            .shadow(color: .black.opacity(0.18), radius: 15, y: 6)
-            .contentShape(Rectangle())
-            .allowsHitTesting(true)
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .global)
-                    .onChanged { value in
-                        if !hasStoredPosition {
-                            hasStoredPosition = true
-                            position = CGPoint(x: value.location.x, y: value.location.y)
-                            dragStartPosition = position
-                        }
-
-                        let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
-                        if moved && !didDrag {
-                            didDrag = true
-                            CoachHaptics.impact()
-                        }
-
-                        if didDrag {
-                            position = CGPoint(
-                                x: dragStartPosition.x + value.translation.width,
-                                y: dragStartPosition.y + value.translation.height
-                            )
-                        }
-                    }
-                    .onEnded { value in
-                        let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
-
-                        if moved {
-                            position = clamped(position, in: UIScreen.main.bounds.size, safe: EdgeInsets())
-                            dragStartPosition = position
-                            CoachHaptics.selection()
-                        } else {
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                showing.toggle()
-                            }
-                            CoachHaptics.selection()
-                        }
-
-                        didDrag = false
-                    }
-            )
-            .accessibilityLabel(showing ? "Close feature menu" : "Open feature menu")
-            .accessibilityAddTraits(.isButton)
+        ZStack {
+            Circle().fill(.ultraThinMaterial)
+            Circle().fill(.white.opacity(0.10))
+            Circle().strokeBorder(.white.opacity(0.55), lineWidth: 1)
+            Image(systemName: showing ? "xmark" : "sparkles")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(PremiumTheme.ink)
         }
-        .frame(width: buttonSize, height: buttonSize, alignment: .bottomTrailing)
-        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
+        .frame(width: buttonSize, height: buttonSize)
+        .shadow(color: .black.opacity(0.18), radius: 15, y: 6)
+        .contentShape(Circle())
+        .allowsHitTesting(true)
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                .onChanged { value in
+                    if !hasStoredPosition {
+                        hasStoredPosition = true
+                        position = CGPoint(x: value.location.x, y: value.location.y)
+                        dragStartPosition = position
+                    }
+                    let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
+                    if moved && !didDrag {
+                        didDrag = true
+                        CoachHaptics.impact()
+                    }
+                    if didDrag {
+                        position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
+                    }
+                }
+                .onEnded { value in
+                    let moved = abs(value.translation.width) > dragThreshold || abs(value.translation.height) > dragThreshold
+                    if moved {
+                        position = clamped(position, in: UIScreen.main.bounds.size, safe: EdgeInsets())
+                        dragStartPosition = position
+                        CoachHaptics.selection()
+                    } else {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
+                        CoachHaptics.selection()
+                    }
+                    didDrag = false
+                }
+        )
+        .accessibilityLabel(showing ? "Close feature menu" : "Open feature menu")
+        .accessibilityAddTraits(.isButton)
     }
 
     private var menu: some View {
@@ -159,6 +158,7 @@ private struct UnifiedFeatureLauncher: View {
             menuButton(.progress, "My Progress", "chart.xyaxis.line")
             menuButton(.scheduledGoals, "Scheduled Goals", "calendar.badge.clock")
         }
+        .fixedSize()
     }
 
     private func menuButton(_ destination: Destination, _ title: String, _ icon: String) -> some View {
