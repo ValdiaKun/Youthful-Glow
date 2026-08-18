@@ -1,6 +1,11 @@
 name: Build Youthful IPA
+
 on:
+  push:
+    branches:
+      - feature/routine-streaks
   workflow_dispatch:
+
 jobs:
   build:
     runs-on: macos-14
