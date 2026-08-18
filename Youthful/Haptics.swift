@@ -93,9 +93,3 @@ private extension UIControl {
         youthful_sendAction(action, to: target, for: event)
     }
 }
-
-extension ContentView {
-    init() {
-        YouthfulHaptics.install()
-    }
-}
