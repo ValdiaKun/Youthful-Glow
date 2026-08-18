@@ -89,6 +89,20 @@ struct ProductsView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Product.name) private var products: [Product]
     @State private var showingAdd = false
+    @State private var editingProduct: Product?
+    @State private var searchText = ""
+    @State private var showingInactive = true
+    @State private var productToDelete: Product?
+
+    private var filteredProducts: [Product] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return products.filter { product in
+            (showingInactive || product.isActive) &&
+            (query.isEmpty || product.name.localizedCaseInsensitiveContains(query) ||
+             product.category.localizedCaseInsensitiveContains(query) ||
+             product.notes.localizedCaseInsensitiveContains(query))
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -123,34 +137,107 @@ struct ProductsView: View {
                             .shadow(color: .black.opacity(0.10), radius: 12, y: 6)
                         }.buttonStyle(.plain)
 
+                        if !products.isEmpty {
+                            HStack(spacing: 10) {
+                                Image(systemName: "magnifyingglass").foregroundStyle(PremiumTheme.muted)
+                                TextField("Search products", text: $searchText)
+                                    .textInputAutocapitalization(.never)
+                                if !searchText.isEmpty {
+                                    Button { searchText = "" } label: {
+                                        Image(systemName: "xmark.circle.fill").foregroundStyle(PremiumTheme.muted)
+                                    }.buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .frame(height: 46)
+                            .background(Color.white.opacity(0.72))
+                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+
+                            HStack {
+                                Text("Your products").font(.system(size: 21, weight: .semibold, design: .serif))
+                                Spacer()
+                                Menu {
+                                    Button(showingInactive ? "Hide inactive" : "Show inactive") {
+                                        showingInactive.toggle()
+                                        CoachHaptics.selection()
+                                    }
+                                } label: {
+                                    Label(showingInactive ? "All" : "Active", systemImage: showingInactive ? "line.3.horizontal.decrease.circle" : "checkmark.circle")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.muted)
+                                }
+                            }
+                        }
+
                         if products.isEmpty {
                             PremiumCard { VStack(alignment: .leading, spacing: 10) {
                                 Image(systemName: "drop.circle").font(.title2).foregroundStyle(PremiumTheme.warm)
                                 Text("No products yet").font(.headline)
                                 Text("Add the products you actually use. They will stay here as your personal routine library.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
                             }}
+                        } else if filteredProducts.isEmpty {
+                            PremiumCard { VStack(alignment: .leading, spacing: 10) {
+                                Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(PremiumTheme.warm)
+                                Text("No matching products").font(.headline)
+                                Text(searchText.isEmpty ? "There are no active products to show." : "Try a different name, category or note.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
+                                if !searchText.isEmpty {
+                                    Button("Clear search") { searchText = ""; CoachHaptics.selection() }
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                }
+                            }}
                         } else {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Your products").font(.system(size: 21, weight: .semibold, design: .serif))
-                                ForEach(products) { product in
+                                ForEach(filteredProducts) { product in
                                     PremiumCard { HStack(spacing: 12) {
                                         Image(systemName: product.isActive ? "checkmark.circle.fill" : "circle")
                                             .font(.title3)
                                             .foregroundStyle(product.isActive ? PremiumTheme.ink : PremiumTheme.muted)
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(product.name).font(.subheadline.weight(.semibold))
+                                            HStack(spacing: 7) {
+                                                Text(product.name).font(.subheadline.weight(.semibold))
+                                                if !product.isActive {
+                                                    Text("Inactive")
+                                                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                                                        .foregroundStyle(PremiumTheme.muted)
+                                                        .padding(.horizontal, 7).padding(.vertical, 3)
+                                                        .background(Color.black.opacity(0.06))
+                                                        .clipShape(Capsule())
+                                                }
+                                            }
                                             Text(product.category + (product.notes.isEmpty ? "" : " · " + product.notes))
                                                 .font(.caption).foregroundStyle(PremiumTheme.muted).lineLimit(2)
                                         }
-                                        Spacer()
-                                        Toggle("Active", isOn: Binding(get: { product.isActive }, set: { product.isActive = $0; try? context.save(); CoachHaptics.selection() }))
-                                            .labelsHidden()
+                                        Spacer(minLength: 8)
+                                        Menu {
+                                            Button {
+                                                editingProduct = product
+                                                CoachHaptics.selection()
+                                            } label: { Label("Edit product", systemImage: "pencil") }
+
+                                            Button {
+                                                product.isActive.toggle()
+                                                try? context.save()
+                                                CoachHaptics.selection()
+                                            } label: {
+                                                Label(product.isActive ? "Mark inactive" : "Mark active", systemImage: product.isActive ? "pause.circle" : "checkmark.circle")
+                                            }
+
+                                            Divider()
+
+                                            Button(role: .destructive) {
+                                                productToDelete = product
+                                                CoachHaptics.selection()
+                                            } label: { Label("Delete product", systemImage: "trash") }
+                                        } label: {
+                                            Image(systemName: "ellipsis.circle")
+                                                .font(.title3)
+                                                .foregroundStyle(PremiumTheme.muted)
+                                                .frame(width: 34, height: 34)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .menuStyle(.borderlessButton)
                                     }}
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            context.delete(product); try? context.save(); CoachHaptics.impact()
-                                        } label: { Label("Delete product", systemImage: "trash") }
-                                    }
                                 }
                             }
                         }
@@ -159,6 +246,20 @@ struct ProductsView: View {
             }.toolbar(.hidden, for: .navigationBar)
         }
         .sheet(isPresented: $showingAdd) { AddProductView() }
+        .sheet(item: $editingProduct) { product in EditProductView(product: product) }
+        .confirmationDialog("Delete product?", isPresented: Binding(get: { productToDelete != nil }, set: { if !$0 { productToDelete = nil } }), titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let product = productToDelete {
+                    context.delete(product)
+                    try? context.save()
+                    CoachHaptics.impact()
+                }
+                productToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { productToDelete = nil }
+        } message: {
+            Text("This removes the product from your library. This action cannot be undone.")
+        }
     }
 }
 
@@ -213,7 +314,6 @@ struct AddProductView: View {
                             .font(.caption).foregroundStyle(PremiumTheme.muted)
                             .padding(.horizontal, 4)
 
-                        // Extra bottom space keeps the form content above the persistent save action.
                         Color.clear.frame(height: 84)
                     }
                     .padding(20)
@@ -255,6 +355,96 @@ struct AddProductView: View {
         guard canSave else { return }
         let product = Product(name: trimmedName, category: category, notes: notes.trimmingCharacters(in: .whitespacesAndNewlines))
         context.insert(product)
+        try? context.save()
+        CoachHaptics.success()
+        dismiss()
+    }
+}
+
+struct EditProductView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+    let product: Product
+    @State private var name: String
+    @State private var category: String
+    @State private var notes: String
+    @State private var isActive: Bool
+    @FocusState private var nameFocused: Bool
+
+    private let categories = ["Skincare", "Hair", "Beard", "Grooming", "Other"]
+
+    init(product: Product) {
+        self.product = product
+        _name = State(initialValue: product.name)
+        _category = State(initialValue: product.category)
+        _notes = State(initialValue: product.notes)
+        _isActive = State(initialValue: product.isActive)
+    }
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canSave: Bool { !trimmedName.isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                PremiumBackground()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            CapsuleLabel(text: "Routine library")
+                            Text("Edit product").font(.system(size: 32, weight: .semibold, design: .serif))
+                            Text("Keep the details current so your routine stays useful.")
+                                .font(.subheadline).foregroundStyle(PremiumTheme.muted)
+                        }
+
+                        PremiumCard {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("PRODUCT DETAILS").font(.system(size: 10, weight: .bold, design: .rounded)).tracking(2).foregroundStyle(PremiumTheme.muted)
+                                TextField("Product name", text: $name)
+                                    .textInputAutocapitalization(.words)
+                                    .focused($nameFocused)
+                                    .padding(14)
+                                    .background(Color.black.opacity(0.045))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                Picker("Category", selection: $category) {
+                                    ForEach(categories, id: \.self) { Text($0) }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                TextField("Notes (optional)", text: $notes, axis: .vertical)
+                                    .lineLimit(2...4)
+                                    .padding(14)
+                                    .background(Color.black.opacity(0.045))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                Toggle("Active product", isOn: $isActive)
+                                    .tint(PremiumTheme.ink)
+                            }
+                        }
+                    }
+                    .padding(20)
+                    .padding(.bottom, 30)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss(); CoachHaptics.selection() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { saveProduct() }
+                        .fontWeight(.semibold)
+                        .disabled(!canSave)
+                }
+            }
+            .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { nameFocused = true } }
+        }
+    }
+
+    private func saveProduct() {
+        guard canSave else { return }
+        product.name = trimmedName
+        product.category = category
+        product.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        product.isActive = isActive
         try? context.save()
         CoachHaptics.success()
         dismiss()
