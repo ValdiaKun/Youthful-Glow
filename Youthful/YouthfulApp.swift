@@ -78,21 +78,40 @@ private struct UnifiedFeatureLauncher: View {
             let safe = proxy.safeAreaInsets
             let bounds = proxy.size
             let defaultPosition = CGPoint(x: bounds.width - edgePadding - buttonSize / 2, y: bounds.height - safe.bottom - defaultBottomOffset)
+
             dock
                 .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
-                .gesture(DragGesture(minimumDistance: 4).onChanged { value in
-                    if !hasStoredPosition { position = defaultPosition; dragStartPosition = defaultPosition; hasStoredPosition = true }
-                    position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
-                }.onEnded { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) { position = snap(position, in: bounds, safe: safe) }
-                    CoachHaptics.selection()
-                })
-                .onAppear { if !hasStoredPosition { position = defaultPosition } }
+                .gesture(
+                    DragGesture(minimumDistance: 4)
+                        .onChanged { value in
+                            if !hasStoredPosition {
+                                position = defaultPosition
+                                dragStartPosition = defaultPosition
+                                hasStoredPosition = true
+                            }
+                            position = CGPoint(
+                                x: dragStartPosition.x + value.translation.width,
+                                y: dragStartPosition.y + value.translation.height
+                            )
+                        }
+                        .onEnded { _ in
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                                position = snap(position, in: bounds, safe: safe)
+                            }
+                            CoachHaptics.selection()
+                        }
+                )
+                .onAppear {
+                    if !hasStoredPosition { position = defaultPosition }
+                }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(item: $selectedDestination) { destination in destinationView(destination) }
     }
 
+    // The launcher itself is exactly the size of the visible button.
+    // The previous 320x320 container was positioned using the button's center,
+    // which placed the actual button outside the intended screen coordinates.
     private var dock: some View {
         ZStack(alignment: .bottomTrailing) {
             if showing {
@@ -101,8 +120,11 @@ private struct UnifiedFeatureLauncher: View {
                     .padding(.bottom, buttonSize + 12)
                     .transition(.scale(scale: 0.88, anchor: .bottomTrailing).combined(with: .opacity))
             }
+
             Button {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    showing.toggle()
+                }
                 CoachHaptics.selection()
             } label: {
                 ZStack {
@@ -119,7 +141,7 @@ private struct UnifiedFeatureLauncher: View {
             .buttonStyle(.plain)
             .accessibilityLabel(showing ? "Close feature menu" : "Open feature menu")
         }
-        .frame(width: 320, height: 320, alignment: .bottomTrailing)
+        .frame(width: buttonSize, height: buttonSize, alignment: .bottomTrailing)
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showing)
     }
 
@@ -134,12 +156,27 @@ private struct UnifiedFeatureLauncher: View {
     private func menuButton(_ destination: Destination, _ title: String, _ icon: String) -> some View {
         Button {
             CoachHaptics.selection()
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) { showing = false }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                showing = false
+            }
             selectedDestination = destination
         } label: {
             HStack(spacing: 8) {
-                Text(title).font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.ink).padding(.horizontal, 13).frame(height: itemHeight).background(.ultraThinMaterial).clipShape(Capsule())
-                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(PremiumTheme.ink).frame(width: itemHeight, height: itemHeight).background(.ultraThinMaterial).overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }.clipShape(Circle())
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(PremiumTheme.ink)
+                    .padding(.horizontal, 13)
+                    .frame(height: itemHeight)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(PremiumTheme.ink)
+                    .frame(width: itemHeight, height: itemHeight)
+                    .background(.ultraThinMaterial)
+                    .overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }
+                    .clipShape(Circle())
             }
             .shadow(color: .black.opacity(0.11), radius: 9, y: 3)
             .contentShape(Rectangle())
@@ -148,18 +185,28 @@ private struct UnifiedFeatureLauncher: View {
     }
 
     @ViewBuilder private func destinationView(_ destination: Destination) -> some View {
-        switch destination { case .smartFeatures: V2FeatureMenu(); case .progress: SmartFeaturesView(); case .scheduledGoals: ScheduledGoalsView() }
+        switch destination {
+        case .smartFeatures: V2FeatureMenu()
+        case .progress: SmartFeaturesView()
+        case .scheduledGoals: ScheduledGoalsView()
+        }
     }
 
     private func clamped(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
-        let minX = edgePadding + buttonSize / 2, maxX = size.width - edgePadding - buttonSize / 2
-        let minY = safe.top + edgePadding + buttonSize / 2, maxY = size.height - safe.bottom - edgePadding - buttonSize / 2
-        return CGPoint(x: min(max(point.x, minX), maxX), y: min(max(point.y, minY), maxY))
+        let minX = edgePadding + buttonSize / 2
+        let maxX = size.width - edgePadding - buttonSize / 2
+        let minY = safe.top + edgePadding + buttonSize / 2
+        let maxY = size.height - safe.bottom - edgePadding - buttonSize / 2
+        return CGPoint(
+            x: min(max(point.x, minX), maxX),
+            y: min(max(point.y, minY), maxY)
+        )
     }
 
     private func snap(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
         let p = clamped(point, in: size, safe: safe)
-        let left = edgePadding + buttonSize / 2, right = size.width - edgePadding - buttonSize / 2
+        let left = edgePadding + buttonSize / 2
+        let right = size.width - edgePadding - buttonSize / 2
         return CGPoint(x: p.x < size.width / 2 ? left : right, y: p.y)
     }
 }
