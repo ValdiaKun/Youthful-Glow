@@ -16,9 +16,11 @@ struct V2FeatureLauncher: View {
         GeometryReader { proxy in
             let safe = proxy.safeAreaInsets
             let bounds = proxy.size
+            // Keep the smart-tools / Glow Dashboard dock clearly above the
+            // fixed Scheduled Goals and Routine Streak controls.
             let defaultPosition = CGPoint(
                 x: bounds.width - edgePadding - dockSize / 2,
-                y: bounds.height - safe.bottom - 150
+                y: bounds.height - safe.bottom - 214
             )
 
             dock
