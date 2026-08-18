@@ -12,14 +12,7 @@ enum HapticIntensity: String, CaseIterable, Identifiable {
     case strong = "Strong"
 
     var id: String { rawValue }
-    var multiplier: CGFloat {
-        switch self {
-        case .off: return 0
-        case .light: return 0.35
-        case .medium: return 0.65
-        case .strong: return 1.0
-        }
-    }
+    var multiplier: CGFloat { switch self { case .off: return 0; case .light: return 0.35; case .medium: return 0.65; case .strong: return 1.0 } }
 }
 
 enum CoachHaptics {
@@ -64,6 +57,7 @@ private struct UnifiedFeatureLauncher: View {
     @State private var position: CGPoint = .zero
     @State private var dragStartPosition: CGPoint = .zero
     @State private var hasStoredPosition = false
+    @State private var didDrag = false
 
     private let buttonSize: CGFloat = 58
     private let itemHeight: CGFloat = 44
@@ -81,24 +75,27 @@ private struct UnifiedFeatureLauncher: View {
 
             dock
                 .position(hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition)
+                .contentShape(Circle().size(width: buttonSize + 24, height: buttonSize + 24))
                 .gesture(
-                    DragGesture(minimumDistance: 4)
+                    DragGesture(minimumDistance: 2)
                         .onChanged { value in
                             if !hasStoredPosition {
                                 position = defaultPosition
                                 dragStartPosition = defaultPosition
                                 hasStoredPosition = true
                             }
-                            position = CGPoint(
-                                x: dragStartPosition.x + value.translation.width,
-                                y: dragStartPosition.y + value.translation.height
-                            )
+                            if !didDrag && abs(value.translation.width) + abs(value.translation.height) > 5 {
+                                didDrag = true
+                                CoachHaptics.impact()
+                            }
+                            position = CGPoint(x: dragStartPosition.x + value.translation.width, y: dragStartPosition.y + value.translation.height)
                         }
                         .onEnded { _ in
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-                                position = snap(position, in: bounds, safe: safe)
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+                                position = clamped(position, in: bounds, safe: safe)
                             }
-                            CoachHaptics.selection()
+                            if didDrag { CoachHaptics.selection() }
+                            didDrag = false
                         }
                 )
                 .onAppear {
@@ -109,9 +106,6 @@ private struct UnifiedFeatureLauncher: View {
         .sheet(item: $selectedDestination) { destination in destinationView(destination) }
     }
 
-    // The launcher itself is exactly the size of the visible button.
-    // The previous 320x320 container was positioned using the button's center,
-    // which placed the actual button outside the intended screen coordinates.
     private var dock: some View {
         ZStack(alignment: .bottomTrailing) {
             if showing {
@@ -122,9 +116,8 @@ private struct UnifiedFeatureLauncher: View {
             }
 
             Button {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                    showing.toggle()
-                }
+                guard !didDrag else { return }
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) { showing.toggle() }
                 CoachHaptics.selection()
             } label: {
                 ZStack {
@@ -156,27 +149,12 @@ private struct UnifiedFeatureLauncher: View {
     private func menuButton(_ destination: Destination, _ title: String, _ icon: String) -> some View {
         Button {
             CoachHaptics.selection()
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                showing = false
-            }
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) { showing = false }
             selectedDestination = destination
         } label: {
             HStack(spacing: 8) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PremiumTheme.ink)
-                    .padding(.horizontal, 13)
-                    .frame(height: itemHeight)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(PremiumTheme.ink)
-                    .frame(width: itemHeight, height: itemHeight)
-                    .background(.ultraThinMaterial)
-                    .overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }
-                    .clipShape(Circle())
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.ink).padding(.horizontal, 13).frame(height: itemHeight).background(.ultraThinMaterial).clipShape(Capsule())
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(PremiumTheme.ink).frame(width: itemHeight, height: itemHeight).background(.ultraThinMaterial).overlay { Circle().strokeBorder(.white.opacity(0.4), lineWidth: 0.8) }.clipShape(Circle())
             }
             .shadow(color: .black.opacity(0.11), radius: 9, y: 3)
             .contentShape(Rectangle())
@@ -185,28 +163,12 @@ private struct UnifiedFeatureLauncher: View {
     }
 
     @ViewBuilder private func destinationView(_ destination: Destination) -> some View {
-        switch destination {
-        case .smartFeatures: V2FeatureMenu()
-        case .progress: SmartFeaturesView()
-        case .scheduledGoals: ScheduledGoalsView()
-        }
+        switch destination { case .smartFeatures: V2FeatureMenu(); case .progress: SmartFeaturesView(); case .scheduledGoals: ScheduledGoalsView() }
     }
 
     private func clamped(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
-        let minX = edgePadding + buttonSize / 2
-        let maxX = size.width - edgePadding - buttonSize / 2
-        let minY = safe.top + edgePadding + buttonSize / 2
-        let maxY = size.height - safe.bottom - edgePadding - buttonSize / 2
-        return CGPoint(
-            x: min(max(point.x, minX), maxX),
-            y: min(max(point.y, minY), maxY)
-        )
-    }
-
-    private func snap(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
-        let p = clamped(point, in: size, safe: safe)
-        let left = edgePadding + buttonSize / 2
-        let right = size.width - edgePadding - buttonSize / 2
-        return CGPoint(x: p.x < size.width / 2 ? left : right, y: p.y)
+        let minX = edgePadding + buttonSize / 2, maxX = size.width - edgePadding - buttonSize / 2
+        let minY = safe.top + edgePadding + buttonSize / 2, maxY = size.height - safe.bottom - edgePadding - buttonSize / 2
+        return CGPoint(x: min(max(point.x, minX), maxX), y: min(max(point.y, minY), maxY))
     }
 }
