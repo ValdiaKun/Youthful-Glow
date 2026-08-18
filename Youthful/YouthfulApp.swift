@@ -9,6 +9,9 @@ struct YouthfulApp: App {
         // in the same appearance prevents dark-mode controls from becoming
         // unreadable against the premium light UI.
         UINavigationBar.appearance().tintColor = UIColor(PremiumTheme.ink)
+
+        // Install centralized haptic feedback once when the app launches.
+        YouthfulHaptics.install()
     }
 
     var body: some Scene {
