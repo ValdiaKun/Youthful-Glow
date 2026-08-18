@@ -2,6 +2,7 @@ import SwiftUI
 
 struct V2FeatureLauncher: View {
     @State private var showing = false
+    @State private var selectedFeature: V2FeatureMenu.SmartFeature?
     @State private var position: CGPoint = .zero
     @State private var dragStartPosition: CGPoint = .zero
     @State private var hasStoredPosition = false
@@ -50,6 +51,9 @@ struct V2FeatureLauncher: View {
                 }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .sheet(item: $selectedFeature) { feature in
+            SmartFeatureSheet(feature: feature)
+        }
     }
 
     private var dock: some View {
@@ -81,17 +85,18 @@ struct V2FeatureLauncher: View {
 
     private var expandedMenu: some View {
         VStack(spacing: shortcutSpacing) {
-            featureShortcut("chart.xyaxis.line", "Progress")
-            featureShortcut("drop.circle.fill", "Products")
-            featureShortcut("bell.badge.fill", "Reminders")
-            featureShortcut("rectangle.split.2x1", "Photos")
+            featureShortcut(.progress, "chart.xyaxis.line", "Progress")
+            featureShortcut(.intelligence, "drop.circle.fill", "Products")
+            featureShortcut(.reminders, "bell.badge.fill", "Reminders")
+            featureShortcut(.photos, "rectangle.split.2x1", "Photos")
         }
     }
 
-    private func featureShortcut(_ icon: String, _ label: String) -> some View {
+    private func featureShortcut(_ feature: V2FeatureMenu.SmartFeature, _ icon: String, _ label: String) -> some View {
         Button {
             CoachHaptics.selection()
             showing = false
+            selectedFeature = feature
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
@@ -99,6 +104,7 @@ struct V2FeatureLauncher: View {
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+                .contentShape(Circle())
                 .accessibilityLabel(label)
         }
         .buttonStyle(.plain)
