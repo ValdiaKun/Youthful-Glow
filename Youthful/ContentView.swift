@@ -6,19 +6,63 @@ import PhotosUI
 // MARK: - Theme
 
 enum PremiumTheme {
-    static let ink = Color(red: 0.10, green: 0.11, blue: 0.12)
-    static let cream = Color(red: 0.96, green: 0.95, blue: 0.92)
-    static let warm = Color(red: 0.72, green: 0.62, blue: 0.50)
-    static let sage = Color(red: 0.43, green: 0.49, blue: 0.43)
-    static let muted = Color(red: 0.42, green: 0.41, blue: 0.39)
-    static let card = Color.white.opacity(0.72)
+    private static func adaptive(light: UIColor, dark: UIColor, amoled: UIColor) -> Color {
+        Color(uiColor: UIColor { _ in
+            switch UserDefaults.standard.string(forKey: "youthfulAppearance") {
+            case YouthfulAppearance.amoled.rawValue: return amoled
+            case YouthfulAppearance.dark.rawValue: return dark
+            default: return light
+            }
+        })
+    }
+
+    static let ink = adaptive(
+        light: UIColor(red: 0.10, green: 0.11, blue: 0.12, alpha: 1),
+        dark: UIColor(red: 0.93, green: 0.93, blue: 0.95, alpha: 1),
+        amoled: .white
+    )
+    static let cream = adaptive(
+        light: UIColor(red: 0.96, green: 0.95, blue: 0.92, alpha: 1),
+        dark: UIColor(red: 0.12, green: 0.12, blue: 0.13, alpha: 1),
+        amoled: .black
+    )
+    static let warm = adaptive(
+        light: UIColor(red: 0.72, green: 0.62, blue: 0.50, alpha: 1),
+        dark: UIColor(red: 0.78, green: 0.69, blue: 0.58, alpha: 1),
+        amoled: UIColor(red: 0.82, green: 0.73, blue: 0.62, alpha: 1)
+    )
+    static let sage = adaptive(
+        light: UIColor(red: 0.43, green: 0.49, blue: 0.43, alpha: 1),
+        dark: UIColor(red: 0.58, green: 0.65, blue: 0.58, alpha: 1),
+        amoled: UIColor(red: 0.64, green: 0.72, blue: 0.64, alpha: 1)
+    )
+    static let muted = adaptive(
+        light: UIColor(red: 0.42, green: 0.41, blue: 0.39, alpha: 1),
+        dark: UIColor(red: 0.68, green: 0.68, blue: 0.70, alpha: 1),
+        amoled: UIColor(red: 0.70, green: 0.70, blue: 0.72, alpha: 1)
+    )
+    static let card = adaptive(
+        light: UIColor.white.withAlphaComponent(0.76),
+        dark: UIColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 0.94),
+        amoled: UIColor(red: 0.045, green: 0.045, blue: 0.05, alpha: 0.98)
+    )
+    static let cardStroke = adaptive(
+        light: UIColor.white.withAlphaComponent(0.90),
+        dark: UIColor.white.withAlphaComponent(0.12),
+        amoled: UIColor.white.withAlphaComponent(0.16)
+    )
+    static let labelFill = adaptive(
+        light: UIColor.black.withAlphaComponent(0.055),
+        dark: UIColor.white.withAlphaComponent(0.09),
+        amoled: UIColor.white.withAlphaComponent(0.10)
+    )
 }
 
 struct PremiumBackground: View {
     var body: some View {
         LinearGradient(stops: [
             .init(color: PremiumTheme.cream, location: 0),
-            .init(color: Color.white, location: 0.55),
+            .init(color: PremiumTheme.card.opacity(0.72), location: 0.55),
             .init(color: PremiumTheme.cream.opacity(0.65), location: 1)
         ], startPoint: .topLeading, endPoint: .bottomTrailing)
         .ignoresSafeArea()
@@ -34,7 +78,7 @@ struct CapsuleLabel: View {
             .foregroundStyle(PremiumTheme.muted)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Color.black.opacity(0.055))
+            .background(PremiumTheme.labelFill)
             .clipShape(Capsule())
     }
 }
@@ -46,8 +90,11 @@ struct PremiumCard<Content: View>: View {
             .padding(18)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.white.opacity(0.76))
-                    .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(.white.opacity(0.9), lineWidth: 1))
+                    .fill(PremiumTheme.card)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(PremiumTheme.cardStroke, lineWidth: 1)
+                    )
             )
             .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
     }
@@ -116,7 +163,7 @@ struct TodayView: View {
                 }
                 Spacer()
                 ZStack {
-                    Circle().stroke(Color.black.opacity(0.07), lineWidth: 9)
+                    Circle().stroke(PremiumTheme.ink.opacity(0.07), lineWidth: 9)
                     Circle().trim(from: 0, to: pct).stroke(PremiumTheme.ink, style: StrokeStyle(lineWidth: 9, lineCap: .round)).rotationEffect(.degrees(-90))
                     VStack(spacing: 0) { Text("\(Int(pct * 100))").font(.system(size: 22, weight: .bold, design: .rounded)); Text("%").font(.caption2).foregroundStyle(PremiumTheme.muted) }
                 }.frame(width: 78, height: 78)
@@ -179,7 +226,7 @@ struct ProgressDashboard: View {
 
 struct PhotosView: View {
     @Environment(\.modelContext) private var context
-    @Query(sort: \ProgressPhoto.date, order: .reverse) private var photos: [ProgressPhoto]
+    @Query(sort: \\ProgressPhoto.date, order: .reverse) private var photos: [ProgressPhoto]
     @State private var picker: PhotosPickerItem?
     @State private var label = "Front"
     @State private var showPicker = false
@@ -232,7 +279,7 @@ struct RoutineRecommendation: Identifiable, Hashable {
 }
 
 struct SmartRoutineCard: View {
-    @Query(sort: \Product.name) private var products: [Product]
+    @Query(sort: \\Product.name) private var products: [Product]
     @State private var expanded = false
 
     private var recommendations: [RoutineRecommendation] { RoutineAdvisor.recommendations(for: products) }
