@@ -22,7 +22,6 @@ enum YouthfulAppearance: String, CaseIterable, Identifiable {
 private struct AppearanceSettingsView: View {
     @AppStorage("youthfulAppearance") private var appearanceRaw = YouthfulAppearance.light.rawValue
     private var appearance: YouthfulAppearance { YouthfulAppearance(rawValue: appearanceRaw) ?? .light }
-
     var body: some View {
         NavigationStack {
             List {
@@ -33,27 +32,15 @@ private struct AppearanceSettingsView: View {
                             CoachHaptics.selection()
                         } label: {
                             HStack(spacing: 14) {
-                                Image(systemName: mode.icon)
-                                    .frame(width: 36, height: 36)
-                                    .foregroundStyle(mode == .amoled ? .white : .primary)
-                                    .background(mode == .amoled ? Color.black : Color.primary.opacity(0.08))
-                                    .clipShape(Circle())
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(mode.rawValue).font(.headline)
-                                    Text(mode.description).font(.caption).foregroundStyle(.secondary)
-                                }
+                                Image(systemName: mode.icon).frame(width: 36, height: 36).foregroundStyle(mode == .amoled ? .white : .primary).background(mode == .amoled ? Color.black : Color.primary.opacity(0.08)).clipShape(Circle())
+                                VStack(alignment: .leading, spacing: 2) { Text(mode.rawValue).font(.headline); Text(mode.description).font(.caption).foregroundStyle(.secondary) }
                                 Spacer()
                                 if appearance == mode { Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint) }
                             }
-                        }
-                        .foregroundStyle(.primary)
+                        }.foregroundStyle(.primary)
                     }
                 }
-                Section {
-                    Text("Light keeps the original Youthful Glow look. Dark uses iOS dark appearance. AMOLED uses the dark appearance with pure-black presentation where the app's custom palette permits it.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                Section { Text("Light keeps the original Youthful Glow look. Dark uses iOS dark appearance. AMOLED uses the dark appearance with pure-black presentation where the app's custom palette permits it.").font(.footnote).foregroundStyle(.secondary) }
             }
             .navigationTitle("Appearance")
             .navigationBarTitleDisplayMode(.inline)
@@ -101,11 +88,8 @@ struct YouthfulApp: App {
     private var appearance: YouthfulAppearance { YouthfulAppearance(rawValue: appearanceRaw) ?? .light }
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                ContentView().background(TabHapticInstaller())
-                UnifiedFeatureLauncher().zIndex(9999)
-            }
-            .preferredColorScheme(appearance.colorScheme)
+            ZStack { ContentView().background(TabHapticInstaller()); UnifiedFeatureLauncher().zIndex(9999) }
+                .preferredColorScheme(appearance.colorScheme)
         }
         .modelContainer(for: [DailyLog.self, Product.self, ProgressPhoto.self, ScheduledGoal.self, ProductIntelligence.self, SmartReminder.self, PhotoNote.self])
     }
@@ -130,7 +114,7 @@ private struct UnifiedFeatureLauncher: View {
     private let menuWidth: CGFloat = 210
     private let edgeActivation: CGFloat = 105
     private let iconColumnWidth: CGFloat = 44
-    private enum Destination: String, Identifiable { case smartFeatures, progress, scheduledGoals, appearance; var id: String { rawValue } }
+    private enum Destination: String, Identifiable { case smartFeatures, discovery, progress, scheduledGoals, appearance; var id: String { rawValue } }
     private enum MenuHorizontalSide { case left, right, center }
 
     var body: some View {
@@ -150,7 +134,7 @@ private struct UnifiedFeatureLauncher: View {
         .sheet(item: $selectedDestination) { destination in destinationView(destination) }
     }
 
-    private var menuHeight: CGFloat { itemHeight * 4 + itemSpacing * 3 }
+    private var menuHeight: CGFloat { itemHeight * 5 + itemSpacing * 4 }
     private func launcherPoint(defaultPosition: CGPoint, bounds: CGSize, safe: EdgeInsets) -> CGPoint { hasStoredPosition ? clamped(position, in: bounds, safe: safe) : defaultPosition }
     private func menuSide(for point: CGPoint, in size: CGSize) -> MenuHorizontalSide { if point.x <= edgeActivation { return .right }; if point.x >= size.width - edgeActivation { return .left }; return .center }
 
@@ -169,6 +153,7 @@ private struct UnifiedFeatureLauncher: View {
     private func menuContents(side: MenuHorizontalSide) -> some View {
         VStack(spacing: itemSpacing) {
             menuButton(.smartFeatures, "Smart Features", "sparkles.rectangle.stack.fill", side: side)
+            menuButton(.discovery, "Discover Products", "bag.badge.sparkles.fill", side: side)
             menuButton(.progress, "My Progress", "chart.xyaxis.line", side: side)
             menuButton(.scheduledGoals, "Scheduled Goals", "calendar.badge.clock", side: side)
             menuButton(.appearance, "Appearance", "circle.lefthalf.filled", side: side)
@@ -178,9 +163,7 @@ private struct UnifiedFeatureLauncher: View {
 
     private var dock: some View {
         ZStack {
-            Circle().fill(.ultraThinMaterial)
-            Circle().fill(.white.opacity(0.10))
-            Circle().strokeBorder(.white.opacity(0.55), lineWidth: 1)
+            Circle().fill(.ultraThinMaterial); Circle().fill(.white.opacity(0.10)); Circle().strokeBorder(.white.opacity(0.55), lineWidth: 1)
             Image(systemName: showing ? "xmark" : "sparkles").font(.system(size: 20, weight: .bold)).foregroundStyle(PremiumTheme.ink)
         }
         .frame(width: buttonSize, height: buttonSize)
@@ -219,7 +202,13 @@ private struct UnifiedFeatureLauncher: View {
     private func labelView(_ title: String) -> some View { Text(title).font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.ink).padding(.horizontal, 13).frame(height: itemHeight).background(.ultraThinMaterial).clipShape(Capsule()) }
 
     @ViewBuilder private func destinationView(_ destination: Destination) -> some View {
-        switch destination { case .smartFeatures: V2FeatureMenu(); case .progress: SmartFeaturesView(); case .scheduledGoals: ScheduledGoalsView(); case .appearance: AppearanceSettingsView() }
+        switch destination {
+        case .smartFeatures: V2FeatureMenu()
+        case .discovery: ProductDiscoveryView()
+        case .progress: SmartFeaturesView()
+        case .scheduledGoals: ScheduledGoalsView()
+        case .appearance: AppearanceSettingsView()
+        }
     }
     private func clamped(_ point: CGPoint, in size: CGSize, safe: EdgeInsets) -> CGPoint {
         let minX = edgePadding + buttonSize / 2, maxX = size.width - edgePadding - buttonSize / 2
