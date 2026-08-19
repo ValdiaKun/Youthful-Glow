@@ -115,9 +115,10 @@ struct ProductsView: View {
                                 Text("Your products, organized into one simple ritual.").foregroundStyle(PremiumTheme.muted)
                             }
                             Spacer()
-                            Text("\(products.count)").font(.caption.weight(.bold)).foregroundStyle(PremiumTheme.muted)
+                            Text("\(products.count)").font(.caption.weight(.bold)).foregroundStyle(PremiumTheme.ink)
                                 .padding(.horizontal, 10).padding(.vertical, 7)
-                                .background(Color.black.opacity(0.05)).clipShape(Capsule())
+                                .background(PremiumTheme.labelFill)
+                                .clipShape(Capsule())
                         }
 
                         Button { showingAdd = true; CoachHaptics.selection() } label: {
@@ -125,10 +126,10 @@ struct ProductsView: View {
                                 Image(systemName: "plus.circle.fill").font(.title3)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Add product").font(.subheadline.weight(.bold))
-                                    Text("Cleanser, SPF, moisturizer, hair care…").font(.caption).opacity(0.8)
+                                    Text("Cleanser, SPF, moisturizer, hair care…").font(.caption).opacity(0.85)
                                 }
                                 Spacer()
-                                Image(systemName: "chevron.right").font(.caption.weight(.bold)).opacity(0.7)
+                                Image(systemName: "chevron.right").font(.caption.weight(.bold)).opacity(0.75)
                             }
                             .foregroundStyle(.white)
                             .padding(16)
@@ -142,6 +143,7 @@ struct ProductsView: View {
                                 Image(systemName: "magnifyingglass").foregroundStyle(PremiumTheme.muted)
                                 TextField("Search products", text: $searchText)
                                     .textInputAutocapitalization(.never)
+                                    .foregroundStyle(PremiumTheme.ink)
                                 if !searchText.isEmpty {
                                     Button { searchText = "" } label: {
                                         Image(systemName: "xmark.circle.fill").foregroundStyle(PremiumTheme.muted)
@@ -150,11 +152,16 @@ struct ProductsView: View {
                             }
                             .padding(.horizontal, 14)
                             .frame(height: 46)
-                            .background(Color.white.opacity(0.72))
+                            .background(PremiumTheme.card)
                             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                                    .stroke(PremiumTheme.labelFill, lineWidth: 1)
+                            }
 
                             HStack {
                                 Text("Your products").font(.system(size: 21, weight: .semibold, design: .serif))
+                                    .foregroundStyle(PremiumTheme.ink)
                                 Spacer()
                                 Menu {
                                     Button(showingInactive ? "Hide inactive" : "Show inactive") {
@@ -172,13 +179,13 @@ struct ProductsView: View {
                         if products.isEmpty {
                             PremiumCard { VStack(alignment: .leading, spacing: 10) {
                                 Image(systemName: "drop.circle").font(.title2).foregroundStyle(PremiumTheme.warm)
-                                Text("No products yet").font(.headline)
+                                Text("No products yet").font(.headline).foregroundStyle(PremiumTheme.ink)
                                 Text("Add the products you actually use. They will stay here as your personal routine library.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
                             }}
                         } else if filteredProducts.isEmpty {
                             PremiumCard { VStack(alignment: .leading, spacing: 10) {
                                 Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(PremiumTheme.warm)
-                                Text("No matching products").font(.headline)
+                                Text("No matching products").font(.headline).foregroundStyle(PremiumTheme.ink)
                                 Text(searchText.isEmpty ? "There are no active products to show." : "Try a different name, category or note.").font(.subheadline).foregroundStyle(PremiumTheme.muted)
                                 if !searchText.isEmpty {
                                     Button("Clear search") { searchText = ""; CoachHaptics.selection() }
@@ -189,27 +196,36 @@ struct ProductsView: View {
                         } else {
                             VStack(alignment: .leading, spacing: 10) {
                                 ForEach(filteredProducts) { product in
-                                    PremiumCard { HStack(spacing: 12) {
-                                        Image(systemName: product.isActive ? "checkmark.circle.fill" : "circle")
-                                            .font(.title3)
-                                            .foregroundStyle(product.isActive ? PremiumTheme.ink : PremiumTheme.muted)
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack(spacing: 7) {
-                                                Text(product.name).font(.subheadline.weight(.semibold))
-                                                if !product.isActive {
-                                                    Text("Inactive")
-                                                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                                                        .foregroundStyle(PremiumTheme.muted)
-                                                        .padding(.horizontal, 7).padding(.vertical, 3)
-                                                        .background(Color.black.opacity(0.06))
-                                                        .clipShape(Capsule())
+                                    PremiumCard {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: product.isActive ? "checkmark.circle.fill" : "circle")
+                                                .font(.title3)
+                                                .foregroundStyle(product.isActive ? PremiumTheme.ink : PremiumTheme.muted)
+                                            VStack(alignment: .leading, spacing: 5) {
+                                                HStack(spacing: 7) {
+                                                    Text(product.name)
+                                                        .font(.subheadline.weight(.semibold))
+                                                        .foregroundStyle(PremiumTheme.ink)
+                                                        .lineLimit(1)
+                                                    if !product.isActive {
+                                                        Text("Inactive")
+                                                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                                                            .foregroundStyle(PremiumTheme.muted)
+                                                            .padding(.horizontal, 7).padding(.vertical, 3)
+                                                            .background(PremiumTheme.labelFill)
+                                                            .clipShape(Capsule())
+                                                    }
                                                 }
+                                                Text(product.category + (product.notes.isEmpty ? "" : " · " + product.notes))
+                                                    .font(.caption)
+                                                    .foregroundStyle(PremiumTheme.muted)
+                                                    .lineLimit(2)
+                                                    .fixedSize(horizontal: false, vertical: true)
                                             }
-                                            Text(product.category + (product.notes.isEmpty ? "" : " · " + product.notes))
-                                                .font(.caption).foregroundStyle(PremiumTheme.muted).lineLimit(2)
+                                            Spacer(minLength: 8)
                                         }
-                                        Spacer(minLength: 8)
-                                        Menu {
+                                        .contentShape(Rectangle())
+                                        .contextMenu {
                                             Button {
                                                 editingProduct = product
                                                 CoachHaptics.selection()
@@ -229,15 +245,8 @@ struct ProductsView: View {
                                                 productToDelete = product
                                                 CoachHaptics.selection()
                                             } label: { Label("Delete product", systemImage: "trash") }
-                                        } label: {
-                                            Image(systemName: "ellipsis.circle")
-                                                .font(.title3)
-                                                .foregroundStyle(PremiumTheme.muted)
-                                                .frame(width: 34, height: 34)
-                                                .contentShape(Rectangle())
                                         }
-                                        .menuStyle(.borderlessButton)
-                                    }}
+                                    }
                                 }
                             }
                         }
@@ -295,7 +304,8 @@ struct AddProductView: View {
                                     .textInputAutocapitalization(.words)
                                     .focused($nameFocused)
                                     .padding(14)
-                                    .background(Color.black.opacity(0.045))
+                                    .background(PremiumTheme.labelFill)
+                                    .foregroundStyle(PremiumTheme.ink)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 Picker("Category", selection: $category) {
                                     ForEach(categories, id: \.self) { Text($0) }
@@ -305,7 +315,8 @@ struct AddProductView: View {
                                 TextField("Notes (optional)", text: $notes, axis: .vertical)
                                     .lineLimit(2...4)
                                     .padding(14)
-                                    .background(Color.black.opacity(0.045))
+                                    .background(PremiumTheme.labelFill)
+                                    .foregroundStyle(PremiumTheme.ink)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
                         }
@@ -404,7 +415,8 @@ struct EditProductView: View {
                                     .textInputAutocapitalization(.words)
                                     .focused($nameFocused)
                                     .padding(14)
-                                    .background(Color.black.opacity(0.045))
+                                    .background(PremiumTheme.labelFill)
+                                    .foregroundStyle(PremiumTheme.ink)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 Picker("Category", selection: $category) {
                                     ForEach(categories, id: \.self) { Text($0) }
@@ -414,7 +426,8 @@ struct EditProductView: View {
                                 TextField("Notes (optional)", text: $notes, axis: .vertical)
                                     .lineLimit(2...4)
                                     .padding(14)
-                                    .background(Color.black.opacity(0.045))
+                                    .background(PremiumTheme.labelFill)
+                                    .foregroundStyle(PremiumTheme.ink)
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 Toggle("Active product", isOn: $isActive)
                                     .tint(PremiumTheme.ink)
