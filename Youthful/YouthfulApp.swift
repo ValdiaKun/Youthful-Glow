@@ -97,7 +97,18 @@ private extension UIViewController {
 @main
 struct YouthfulApp: App {
     @AppStorage("youthfulAppearance") private var appearanceRaw = YouthfulAppearance.light.rawValue
-    init() { UINavigationBar.appearance().tintColor = UIColor(PremiumTheme.ink) }
+    init() {
+        UINavigationBar.appearance().tintColor = .label
+
+        // Keep UIKit-backed SwiftUI form controls readable when the app switches
+        // between Light, Dark and AMOLED. The explicit PremiumTheme styling on
+        // the product forms remains responsible for their surfaces.
+        UITextField.appearance().textColor = .label
+        UITextField.appearance().tintColor = .label
+        UITextField.appearance().font = UIFont.preferredFont(forTextStyle: .body)
+        UITextField.appearance().adjustsFontForContentSizeCategory = true
+        UITextField.appearance().clearButtonMode = .whileEditing
+    }
     private var appearance: YouthfulAppearance { YouthfulAppearance(rawValue: appearanceRaw) ?? .light }
     var body: some Scene {
         WindowGroup {
