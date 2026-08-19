@@ -9,7 +9,7 @@ struct V2FeatureMenu: View {
     @State private var selectedFeature: SmartFeature?
 
     enum SmartFeature: String, Identifiable {
-        case progress, intelligence, reminders, photos
+        case progress, intelligence, reminders, photos, discovery
         var id: String { rawValue }
     }
 
@@ -28,6 +28,7 @@ struct V2FeatureMenu: View {
                                 .foregroundStyle(PremiumTheme.muted)
                         }
 
+                        featureButton(.discovery, "Discover Products", "Explore a curated Philippine-market personal-care catalog and add products to your library.", "bag.fill")
                         featureButton(.progress, "My Progress", "Streaks, completion, recommendations and product health.", "chart.xyaxis.line")
                         featureButton(.intelligence, "Product Intelligence", "Opened dates, run-out estimates, expiration and notes.", "drop.circle.fill")
                         featureButton(.reminders, "Smart Reminders", "Morning, evening and custom reminder times.", "bell.badge.fill")
@@ -113,6 +114,8 @@ private struct SmartFeatureSheet: View {
     @ViewBuilder
     private var destination: some View {
         switch feature {
+        case .discovery:
+            ProductDiscoveryView()
         case .progress:
             SmartFeaturesView()
         case .intelligence:
