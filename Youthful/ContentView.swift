@@ -226,7 +226,7 @@ struct ProgressDashboard: View {
 
 struct PhotosView: View {
     @Environment(\.modelContext) private var context
-    @Query(sort: \\ProgressPhoto.date, order: .reverse) private var photos: [ProgressPhoto]
+    @Query(sort: \ProgressPhoto.date, order: .reverse) private var photos: [ProgressPhoto]
     @State private var picker: PhotosPickerItem?
     @State private var label = "Front"
     @State private var showPicker = false
@@ -279,7 +279,7 @@ struct RoutineRecommendation: Identifiable, Hashable {
 }
 
 struct SmartRoutineCard: View {
-    @Query(sort: \\Product.name) private var products: [Product]
+    @Query(sort: \Product.name) private var products: [Product]
     @State private var expanded = false
 
     private var recommendations: [RoutineRecommendation] { RoutineAdvisor.recommendations(for: products) }
@@ -290,35 +290,28 @@ struct SmartRoutineCard: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "wand.and.stars")
                         .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(PremiumTheme.warm)
                         .frame(width: 40, height: 40)
                         .background(PremiumTheme.cream)
                         .clipShape(Circle())
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("SMART ROUTINE").font(.system(size: 10, weight: .bold, design: .rounded)).tracking(1.8).foregroundStyle(PremiumTheme.muted)
-                        Text("A simpler next step").font(.system(size: 21, weight: .semibold, design: .serif))
-                        Text("Based on the products in your library.").font(.caption).foregroundStyle(PremiumTheme.muted)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Smart routine coach").font(.subheadline.weight(.semibold))
+                        Text("Small changes based on your product library.").font(.caption).foregroundStyle(PremiumTheme.muted)
                     }
                     Spacer()
+                    Button { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } } label: { Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.caption.weight(.bold)) }.buttonStyle(.plain)
                 }
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(recommendations.enumerated()), id: \.element.id) { index, recommendation in
-                        if index > 0 { Divider().opacity(0.5) }
-                        HStack(alignment: .top, spacing: 11) {
-                            Image(systemName: recommendation.icon).font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.warm).frame(width: 24).padding(.top, 2)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(recommendation.title).font(.subheadline.weight(.semibold))
-                                Text(recommendation.detail).font(.caption).foregroundStyle(PremiumTheme.muted).lineLimit(expanded ? nil : 2)
+                if expanded {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(recommendations) { item in
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: item.icon).font(.caption.weight(.bold)).foregroundStyle(PremiumTheme.warm).frame(width: 22)
+                                VStack(alignment: .leading, spacing: 2) { Text(item.title).font(.caption.weight(.bold)); Text(item.detail).font(.caption2).foregroundStyle(PremiumTheme.muted) }
                             }
                         }
                     }
+                    .padding(.top, 4)
                 }
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
-                    CoachHaptics.selection()
-                } label: {
-                    Text(expanded ? "Show less" : "Read guidance").font(.caption.weight(.semibold)).foregroundStyle(PremiumTheme.ink)
-                }
-                .buttonStyle(.plain)
             }
         }
     }
