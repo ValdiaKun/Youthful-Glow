@@ -298,26 +298,82 @@ struct AddProductView: View {
                         }
 
                         PremiumCard {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("PRODUCT DETAILS").font(.system(size: 10, weight: .bold, design: .rounded)).tracking(2).foregroundStyle(PremiumTheme.muted)
-                                TextField("Product name", text: $name)
-                                    .textInputAutocapitalization(.words)
-                                    .focused($nameFocused)
-                                    .padding(14)
-                                    .background(PremiumTheme.labelFill)
-                                    .foregroundStyle(PremiumTheme.ink)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                Picker("Category", selection: $category) {
-                                    ForEach(categories, id: \.self) { Text($0) }
+                            VStack(alignment: .leading, spacing: 18) {
+                                Text("PRODUCT DETAILS")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .tracking(2)
+                                    .foregroundStyle(PremiumTheme.muted)
+
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text("Product name")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                    TextField("Enter product name", text: $name)
+                                        .textInputAutocapitalization(.words)
+                                        .focused($nameFocused)
+                                        .font(.body)
+                                        .foregroundStyle(PremiumTheme.ink)
+                                        .tint(PremiumTheme.ink)
+                                        .padding(.horizontal, 14)
+                                        .frame(minHeight: 50)
+                                        .background(PremiumTheme.labelFill)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(PremiumTheme.muted.opacity(0.28), lineWidth: 1)
+                                        }
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 }
-                                .pickerStyle(.menu)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                TextField("Notes (optional)", text: $notes, axis: .vertical)
-                                    .lineLimit(2...4)
-                                    .padding(14)
+
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text("Category")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                    HStack {
+                                        Text(category)
+                                            .font(.body.weight(.medium))
+                                            .foregroundStyle(PremiumTheme.ink)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(PremiumTheme.muted)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .frame(minHeight: 50)
                                     .background(PremiumTheme.labelFill)
-                                    .foregroundStyle(PremiumTheme.ink)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(PremiumTheme.muted.opacity(0.28), lineWidth: 1)
+                                    }
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay {
+                                        Picker("Category", selection: $category) {
+                                            ForEach(categories, id: \.self) { Text($0).foregroundStyle(PremiumTheme.ink).tag($0) }
+                                        }
+                                        .pickerStyle(.menu)
+                                        .labelsHidden()
+                                        .opacity(0.02)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text("Notes")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                    TextField("Optional notes about this product", text: $notes, axis: .vertical)
+                                        .lineLimit(3...5)
+                                        .font(.body)
+                                        .foregroundStyle(PremiumTheme.ink)
+                                        .tint(PremiumTheme.ink)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 12)
+                                        .frame(minHeight: 88, alignment: .topLeading)
+                                        .background(PremiumTheme.labelFill)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(PremiumTheme.muted.opacity(0.28), lineWidth: 1)
+                                        }
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                }
                             }
                         }
 
@@ -409,26 +465,83 @@ struct EditProductView: View {
                         }
 
                         PremiumCard {
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("PRODUCT DETAILS").font(.system(size: 10, weight: .bold, design: .rounded)).tracking(2).foregroundStyle(PremiumTheme.muted)
-                                TextField("Product name", text: $name)
-                                    .textInputAutocapitalization(.words)
-                                    .focused($nameFocused)
-                                    .padding(14)
-                                    .background(PremiumTheme.labelFill)
-                                    .foregroundStyle(PremiumTheme.ink)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                Picker("Category", selection: $category) {
-                                    ForEach(categories, id: \.self) { Text($0) }
+                            VStack(alignment: .leading, spacing: 18) {
+                                Text("PRODUCT DETAILS")
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .tracking(2)
+                                    .foregroundStyle(PremiumTheme.muted)
+
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text("Product name")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                    TextField("Enter product name", text: $name)
+                                        .textInputAutocapitalization(.words)
+                                        .focused($nameFocused)
+                                        .font(.body)
+                                        .foregroundStyle(PremiumTheme.ink)
+                                        .tint(PremiumTheme.ink)
+                                        .padding(.horizontal, 14)
+                                        .frame(minHeight: 50)
+                                        .background(PremiumTheme.labelFill)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(PremiumTheme.muted.opacity(0.28), lineWidth: 1)
+                                        }
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 }
-                                .pickerStyle(.menu)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                TextField("Notes (optional)", text: $notes, axis: .vertical)
-                                    .lineLimit(2...4)
-                                    .padding(14)
+
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text("Category")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                    HStack {
+                                        Text(category)
+                                            .font(.body.weight(.medium))
+                                            .foregroundStyle(PremiumTheme.ink)
+                                        Spacer()
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(PremiumTheme.muted)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .frame(minHeight: 50)
                                     .background(PremiumTheme.labelFill)
-                                    .foregroundStyle(PremiumTheme.ink)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .stroke(PremiumTheme.muted.opacity(0.28), lineWidth: 1)
+                                    }
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay {
+                                        Picker("Category", selection: $category) {
+                                            ForEach(categories, id: \.self) { Text($0).foregroundStyle(PremiumTheme.ink).tag($0) }
+                                        }
+                                        .pickerStyle(.menu)
+                                        .labelsHidden()
+                                        .opacity(0.02)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text("Notes")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(PremiumTheme.ink)
+                                    TextField("Optional notes about this product", text: $notes, axis: .vertical)
+                                        .lineLimit(3...5)
+                                        .font(.body)
+                                        .foregroundStyle(PremiumTheme.ink)
+                                        .tint(PremiumTheme.ink)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 12)
+                                        .frame(minHeight: 88, alignment: .topLeading)
+                                        .background(PremiumTheme.labelFill)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                                .stroke(PremiumTheme.muted.opacity(0.28), lineWidth: 1)
+                                        }
+                                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                }
+
                                 Toggle("Active product", isOn: $isActive)
                                     .tint(PremiumTheme.ink)
                             }
